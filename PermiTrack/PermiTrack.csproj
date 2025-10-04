@@ -15,4 +15,8 @@
     <ProjectReference Include="..\PermiTrack.Services\PermiTrack.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\" />
+  </ItemGroup>
+
 </Project>
