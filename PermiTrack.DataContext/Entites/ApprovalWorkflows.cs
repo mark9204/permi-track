@@ -6,16 +6,15 @@ using System.Threading.Tasks;
 
 namespace PermiTrack.DataContext.Entites
 {
-    public class User
+    public class ApprovalWorkflow
     {
         public long Id { get; set; }
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string PasswordHash { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public int MinUserLevel { get; set; }
+        public int MaxUserLevel { get; set; }
+        public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-        public bool IsActive { get; set; }
     }
 }
