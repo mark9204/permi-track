@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using PermiTrack.DataContext;
 
 namespace PermiTrack
 {
@@ -6,6 +8,9 @@ namespace PermiTrack
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            builder.Services.AddDbContext<PermiTrackDbContext>(opt =>
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackDb"))); 
 
             // Add services to the container.
 

@@ -8,5 +8,6 @@ namespace PermiTrack.DataContext.DTOs
 {
     internal class ApprovalStepDTO
     {
+
     }
 }
