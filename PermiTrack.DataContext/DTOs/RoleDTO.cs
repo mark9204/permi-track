@@ -6,19 +6,17 @@ using System.Threading.Tasks;
 
 namespace PermiTrack.DataContext.DTOs
 {
-    internal class ApprovalWorkflowsDTO
+    class RoleDTO
     {
-        public long Id {  get; set; }
+        public long Id { get; set; }
 
         public string Name { get; set; } = default!;
 
         public string? Description { get; set; }
 
-        public int MinUserLevel { get; set; }
-
-        public int MaxUserLevel { get; set; }
-
         public bool IsActive { get; set; }
+
+        public int Level { get; set; }
 
     }
 }

@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PermiTrack.DataContext;
+using AutoMapper;
+using PermiTrack.DataContext.Mappings;
+using Microsoft.Extensions.DependencyInjection;
+
 
 namespace PermiTrack
 {
@@ -10,7 +14,12 @@ namespace PermiTrack
             var builder = WebApplication.CreateBuilder(args);
 
             builder.Services.AddDbContext<PermiTrackDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackDb"))); 
+    opt.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackDb")));
+
+            builder.Services.AddAutoMapper(cfg =>
+            {
+                cfg.AddProfile<PermiTrack.DataContext.Mappings.PermiTrackProfile>();
+            });
 
             // Add services to the container.
 
