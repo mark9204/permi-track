@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace PermiTrack.DataContext.DTOs
 {
-    class UserDTO
+    public class UserDTO
     {
         public long Id { get; set; }
 

@@ -1,0 +1,66 @@
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using PermiTrack.DataContext;
+using PermiTrack.DataContext.DTOs;
+using PermiTrack.DataContext.Entites;
+
+
+namespace PermiTrack.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class RolesController : ControllerBase
+{
+    private readonly PermiTrackDbContext _db;
+    private readonly IMapper _map;
+    public RolesController(PermiTrackDbContext db, IMapper map) { _db = db; _map = map; }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<RoleDTO>>> GetAll() =>
+        Ok(await _db.Roles.AsNoTracking().ProjectTo<RoleDTO>(_map.ConfigurationProvider).ToListAsync());
+
+    [HttpGet("{id:long}")]
+    public async Task<ActionResult<RoleDTO>> Get(long id)
+    {
+        var dto = await _db.Roles.AsNoTracking().Where(r => r.Id == id)
+            .ProjectTo<RoleDTO>(_map.ConfigurationProvider).FirstOrDefaultAsync();
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<RoleDTO>> Create(RoleDTO dto)
+    {
+        if (await _db.Roles.AnyAsync(r => r.Name == dto.Name)) return Conflict(new { message = "Role name exists" });
+        var entity = _map.Map<Role>(dto);
+        entity.CreatedAt = DateTime.UtcNow;
+        _db.Roles.Add(entity);
+        await _db.SaveChangesAsync();
+        return CreatedAtAction(nameof(Get), new { id = entity.Id }, _map.Map<RoleDTO>(entity));
+    }
+
+    [HttpPut("{id:long}")]
+    public async Task<ActionResult<RoleDTO>> Update(long id, RoleDTO dto)
+    {
+        var e = await _db.Roles.FindAsync(id);
+        if (e is null) return NotFound();
+        e.Name = dto.Name;
+        e.Description = dto.Description;
+        e.IsActive = dto.IsActive;
+        e.Level = dto.Level;
+        e.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(_map.Map<RoleDTO>(e));
+    }
+
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var e = await _db.Roles.FindAsync(id);
+        if (e is null) return NotFound();
+        _db.Roles.Remove(e);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+}

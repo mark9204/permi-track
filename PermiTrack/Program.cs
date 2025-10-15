@@ -21,6 +21,9 @@ namespace PermiTrack
                 cfg.AddProfile<PermiTrack.DataContext.Mappings.PermiTrackProfile>();
             });
 
+
+        
+
             // Add services to the container.
 
             builder.Services.AddControllers();
