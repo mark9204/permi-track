@@ -12,7 +12,7 @@ namespace PermiTrack.DataContext.Entites
         public long RoleId { get; set; }
         public long PermissionId { get; set; }
         public DateTime GrantedAt { get; set; }
-        public long GrantedBy { get; set; }
+        public long? GrantedBy { get; set; }
 
         // Navigation properties
         public Role Role { get; set; }

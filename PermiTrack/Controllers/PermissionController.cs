@@ -33,15 +33,28 @@ public class PermissionsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<PermissionDTO>> Create(PermissionDTO dto)
+    public async Task<ActionResult<PermissionDTO>> Create(CreatePermissionRequest req)
     {
-        if (await _db.Permissions.AnyAsync(p => p.Name == dto.Name)) return Conflict(new { message = "Permission exists" });
-        var e = _map.Map<Permission>(dto);
-        e.CreatedAt = DateTime.UtcNow;
-        _db.Permissions.Add(e);
+        if (await _db.Permissions.AnyAsync(p => p.Name == req.Name))
+            return Conflict(new { message = "Permission exists" });
+
+        var e = new Permission
+        {
+            Name = req.Name,
+            Resource = req.Resource,
+            Action = req.Action,
+            Description = req.Description,
+            IsActive = req.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Permissions.Add(e);       // EF maga generál Id-t (IDENTITY)
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(Get), new { id = e.Id }, _map.Map<PermissionDTO>(e));
+
+        return CreatedAtAction(nameof(Get), new { id = e.Id },
+            _map.Map<PermissionDTO>(e));
     }
+
 
     [HttpPut("{id:long}")]
     public async Task<ActionResult<PermissionDTO>> Update(long id, PermissionDTO dto)

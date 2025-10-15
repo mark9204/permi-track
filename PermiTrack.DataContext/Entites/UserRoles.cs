@@ -12,7 +12,7 @@ namespace PermiTrack.DataContext.Entites
         public long UserId { get; set; }
         public long RoleId { get; set; }
         public DateTime AssignedAt { get; set; }
-        public long AssignedBy { get; set; }
+        public long? AssignedBy { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public bool IsActive { get; set; }
 
