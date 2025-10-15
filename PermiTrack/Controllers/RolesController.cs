@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PermiTrack.DataContext;
 using PermiTrack.DataContext.DTOs;
 using PermiTrack.DataContext.Entites;
+using System.Data;
 
 
 namespace PermiTrack.Controllers;
@@ -30,16 +31,26 @@ public class RolesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<RoleDTO>> Create(RoleDTO dto)
+    public async Task<IActionResult> Create(CreateRoleRequest req)
     {
-        if (await _db.Roles.AnyAsync(r => r.Name == dto.Name)) return Conflict(new { message = "Role name exists" });
-        var entity = _map.Map<Role>(dto);
-        entity.CreatedAt = DateTime.UtcNow;
-        _db.Roles.Add(entity);
-        await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(Get), new { id = entity.Id }, _map.Map<RoleDTO>(entity));
-    }
+        if (await _db.Roles.AnyAsync(r => r.Name == req.Name))
+            return Conflict(new { message = "Role already exists" });
 
+        var role = new Role
+        {
+            Name = req.Name,
+            Description = req.Description,
+            IsActive = req.IsActive,
+            Level = req.Level,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.Roles.Add(role);
+        await _db.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(Get), new { id = role.Id }, role);
+    }
     [HttpPut("{id:long}")]
     public async Task<ActionResult<RoleDTO>> Update(long id, RoleDTO dto)
     {
