@@ -13,9 +13,11 @@ namespace PermiTrack
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddDbContext<PermiTrackDbContext>(opt =>
-    opt.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackDb")));
+            builder.Services.AddDbContext<PermiTrackDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackContext")));
 
+
+
+            // AutoMapper Configuration
             builder.Services.AddAutoMapper(cfg =>
             {
                 cfg.AddProfile<PermiTrack.DataContext.Mappings.PermiTrackProfile>();
