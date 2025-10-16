@@ -1,0 +1,15 @@
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\bin\Debug\net8.0\PermiTrack.DataContext.deps.json
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\bin\Debug\net8.0\PermiTrack.DataContext.dll
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\bin\Debug\net8.0\PermiTrack.DataContext.pdb
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.AssemblyInfoInputs.cache
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.AssemblyInfo.cs
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.csproj.CoreCompileInputs.cache
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.sourcelink.json
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.dll
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\refint\PermiTrack.DataContext.dll
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.pdb
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\ref\PermiTrack.DataContext.dll
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\bin\Debug\net8.0\PermiTrack.DataContext.runtimeconfig.json
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.csproj.AssemblyReference.cache
+C:\Users\markb\source\repos\permi-track\PermiTrack.DataContext\obj\Debug\net8.0\PermiTrack.DataContext.genruntimeconfig.cache

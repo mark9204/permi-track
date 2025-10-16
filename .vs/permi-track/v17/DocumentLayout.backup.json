@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\markb\\source\\repos\\permi-track\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4289405D-AAB5-480E-BD4A-C0DC002335E0}|PermiTrack.DataContext\\PermiTrack.DataContext.csproj|c:\\users\\markb\\source\\repos\\permi-track\\permitrack.datacontext\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4289405D-AAB5-480E-BD4A-C0DC002335E0}|PermiTrack.DataContext\\PermiTrack.DataContext.csproj|solutionrelative:permitrack.datacontext\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Users\\markb\\source\\repos\\permi-track\\PermiTrack.DataContext\\Class1.cs",
+              "RelativeDocumentMoniker": "PermiTrack.DataContext\\Class1.cs",
+              "ToolTip": "C:\\Users\\markb\\source\\repos\\permi-track\\PermiTrack.DataContext\\Class1.cs",
+              "RelativeToolTip": "PermiTrack.DataContext\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-04T14:11:54.757Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
