@@ -3,6 +3,11 @@ using PermiTrack.DataContext;
 using AutoMapper;
 using PermiTrack.DataContext.Mappings;
 using Microsoft.Extensions.DependencyInjection;
+using PermiTrack.Services.Interfaces;
+using PermiTrack.Services.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 namespace PermiTrack
@@ -13,9 +18,8 @@ namespace PermiTrack
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddDbContext<PermiTrackDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackContext")));
-
-
+            builder.Services.AddDbContext<PermiTrackDbContext>(options => 
+                options.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackContext")));
 
             // AutoMapper Configuration
             builder.Services.AddAutoMapper(cfg =>
@@ -23,11 +27,41 @@ namespace PermiTrack
                 cfg.AddProfile<PermiTrack.DataContext.Mappings.PermiTrackProfile>();
             });
 
+            // Register Services
+            builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
 
-        
+            // JWT Authentication Configuration
+            var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
+            var key = Encoding.UTF8.GetBytes(jwtKey);
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false; // Set to true in production
+                options.SaveToken = true;
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidateAudience = true,
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+            builder.Services.AddAuthorization();
 
             // Add services to the container.
-
             builder.Services.AddControllers();
 
             //Frontend CORS allow
@@ -40,6 +74,7 @@ namespace PermiTrack
                           .AllowAnyMethod();
                 });
             });
+            
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -55,9 +90,10 @@ namespace PermiTrack
 
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
             app.UseCors();
 
+            app.UseAuthentication();
+            app.UseAuthorization();
 
             app.MapControllers();
 

@@ -35,8 +35,4 @@
     <ProjectReference Include="..\PermiTrack.Services\PermiTrack.Services.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="PermiTrack.Services\Interfaces\" />
-  </ItemGroup>
-
 </Project>
