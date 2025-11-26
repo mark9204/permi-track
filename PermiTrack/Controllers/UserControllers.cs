@@ -1,11 +1,9 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PermiTrack.DataContext;
 using PermiTrack.DataContext.DTOs;
-using PermiTrack.DataContext.Entites;
+using PermiTrack.Services.Interfaces;
+using System.Security.Claims;
 
 namespace PermiTrack.Controllers;
 
@@ -14,91 +12,151 @@ namespace PermiTrack.Controllers;
 [Authorize] // Require authentication for all endpoints
 public class UsersController : ControllerBase
 {
-    private readonly PermiTrackDbContext _db;
-    private readonly IMapper _map;
-    public UsersController(PermiTrackDbContext db, IMapper map)
+    private readonly IUserManagementService _userManagementService;
+
+    public UsersController(IUserManagementService userManagementService)
     {
-        _db = db; _map = map;
+        _userManagementService = userManagementService;
     }
 
-    // GET /api/users?skip=0&take=50&search=joe
+    private long GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return long.TryParse(userIdClaim, out var userId) ? userId : 0;
+    }
+
+    // GET /api/users - List all users with pagination and filters
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDTO>>> GetAll([FromQuery] int skip = 0, [FromQuery] int take = 50, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] bool? isActive = null)
     {
-        var q = _db.Users.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(search))
-            q = q.Where(u => u.Username.Contains(search) || u.Email.Contains(search));
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-        var list = await q
-            .OrderByDescending(u => u.CreatedAt)
-            .Skip(Math.Max(0, skip))
-            .Take(Math.Clamp(take, 1, 200))
-            .ProjectTo<UserDTO>(_map.ConfigurationProvider)
-            .ToListAsync();
+        var (success, message, users, totalCount) = await _userManagementService.GetUsersAsync(
+            page, pageSize, search, isActive);
 
-        return Ok(list);
-    }
+        if (!success)
+            return BadRequest(new { message });
 
-    [HttpGet("{id:long}")]
-    public async Task<ActionResult<UserDTO>> GetOne(long id)
-    {
-        var dto = await _db.Users.AsNoTracking()
-            .Where(u => u.Id == id)
-            .ProjectTo<UserDTO>(_map.ConfigurationProvider)
-            .FirstOrDefaultAsync();
-
-        return dto is null ? NotFound() : Ok(dto);
-    }
-
-    [HttpPost]
-    public async Task<ActionResult<UserDTO>> Create([FromBody] CreateUserRequest req) // Első dto
-    {
-        if (await _db.Users.AnyAsync(u => u.Username == req.Username))
-            return Conflict(new { field = "Username", message = "already exists" });
-        if (await _db.Users.AnyAsync(u => u.Email == req.Email))
-            return Conflict(new { field = "Email", message = "already exists" });
-
-        var user = new User
+        return Ok(new
         {
-            Username = req.Username,
-            Email = req.Email,
-            PasswordHash = req.PasswordHash,   // TODO: később hash-elni
-            FirstName = req.FirstName,
-            LastName = req.LastName,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        var dto = _map.Map<UserDTO>(user);
-        return CreatedAtAction(nameof(GetOne), new { id = user.Id }, dto);
+            data = users,
+            pagination = new
+            {
+                page,
+                pageSize,
+                totalCount,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            }
+        });
     }
 
+    // GET /api/users/{id} - Get user details
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetUser(long id)
+    {
+        var (success, message, user) = await _userManagementService.GetUserByIdAsync(id);
+
+        if (!success)
+            return NotFound(new { message });
+
+        return Ok(user);
+    }
+
+    // POST /api/users - Create new user (admin only)
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+    {
+        var adminUserId = GetCurrentUserId();
+        var (success, message, userId) = await _userManagementService.CreateUserAsync(request, adminUserId);
+
+        if (!success)
+            return BadRequest(new { message });
+
+        return CreatedAtAction(nameof(GetUser), new { id = userId }, new { id = userId, message });
+    }
+
+    // PUT /api/users/{id} - Update user (admin only)
     [HttpPut("{id:long}")]
-    public async Task<ActionResult<UserDTO>> Update(long id, [FromBody] UpdateUserRequest req)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateUserRequest request)
     {
-        var user = await _db.Users.FindAsync(id);
-        if (user is null) return NotFound();
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _userManagementService.UpdateUserAsync(id, request, adminUserId);
 
-        if (req.Email != null) user.Email = req.Email;
-        if (req.FirstName != null) user.FirstName = req.FirstName;
-        if (req.LastName != null) user.LastName = req.LastName;
-        if (req.IsActive.HasValue) user.IsActive = req.IsActive.Value;
-        user.UpdatedAt = DateTime.UtcNow;
+        if (!success)
+            return BadRequest(new { message });
 
-        await _db.SaveChangesAsync();
-        return Ok(_map.Map<UserDTO>(user));
+        return Ok(new { message });
     }
 
+    // DELETE /api/users/{id} - Soft delete user (admin only)
     [HttpDelete("{id:long}")]
-    public async Task<IActionResult> Delete(long id)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteUser(long id, [FromQuery] string? reason = null)
     {
-        var u = await _db.Users.FindAsync(id);
-        if (u is null) return NotFound();
-        _db.Users.Remove(u);
-        await _db.SaveChangesAsync();
-        return NoContent();
+        var adminUserId = GetCurrentUserId();
+
+        // Prevent self-deletion
+        if (id == adminUserId)
+            return BadRequest(new { message = "You cannot delete your own account" });
+
+        var (success, message) = await _userManagementService.DeleteUserAsync(id, adminUserId, reason);
+
+        if (!success)
+            return BadRequest(new { message });
+
+        return Ok(new { message });
+    }
+
+    // POST /api/users/{id}/activate - Activate user (admin only)
+    [HttpPost("{id:long}/activate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ActivateUser(long id, [FromBody] UserActivationRequest? request = null)
+    {
+        var adminUserId = GetCurrentUserId();
+        var (success, message) = await _userManagementService.SetUserActiveStatusAsync(
+            id, true, adminUserId, request?.Reason);
+
+        if (!success)
+            return BadRequest(new { message });
+
+        return Ok(new { message });
+    }
+
+    // POST /api/users/{id}/deactivate - Deactivate user (admin only)
+    [HttpPost("{id:long}/deactivate")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeactivateUser(long id, [FromBody] UserActivationRequest request)
+    {
+        var adminUserId = GetCurrentUserId();
+
+        // Prevent self-deactivation
+        if (id == adminUserId)
+            return BadRequest(new { message = "You cannot deactivate your own account" });
+
+        var (success, message) = await _userManagementService.SetUserActiveStatusAsync(
+            id, false, adminUserId, request.Reason);
+
+        if (!success)
+            return BadRequest(new { message });
+
+        return Ok(new { message });
+    }
+
+    // POST /api/users/bulk-import - Import multiple users from CSV/JSON (admin only)
+    [HttpPost("bulk-import")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> BulkImport([FromBody] BulkUserImportRequest request)
+    {
+        var adminUserId = GetCurrentUserId();
+        var result = await _userManagementService.BulkImportUsersAsync(request, adminUserId);
+
+        return Ok(result);
     }
 }

@@ -29,6 +29,12 @@ public class EmailService : IEmailService
         await SendEmailAsync(email, subject, body);
     }
 
+    public async Task SendVerificationEmailAsync(string email, string username, string verificationToken)
+    {
+        // Same implementation as SendEmailVerificationAsync
+        await SendEmailVerificationAsync(email, username, verificationToken);
+    }
+
     public async Task SendPasswordResetAsync(string email, string username, string resetToken)
     {
         var subject = "Reset your password";
@@ -45,13 +51,18 @@ public class EmailService : IEmailService
         await SendEmailAsync(email, subject, body);
     }
 
-    public async Task SendWelcomeEmailAsync(string email, string username)
+    public async Task SendWelcomeEmailAsync(string email, string username, string? password = null)
     {
         var subject = "Welcome to PermiTrack";
+        var passwordInfo = !string.IsNullOrWhiteSpace(password)
+            ? $"<p><strong>Your temporary password:</strong> {password}</p><p>Please change your password after your first login.</p>"
+            : "<p>You can now log in with your credentials.</p>";
+
         var body = $@"
             <h2>Welcome to PermiTrack, {username}!</h2>
             <p>Your account has been successfully created.</p>
-            <p>You can now log in and start managing permissions.</p>
+            {passwordInfo}
+            <p>You can now start managing permissions.</p>
         ";
 
         await SendEmailAsync(email, subject, body);

@@ -14,7 +14,9 @@ namespace PermiTrack.DataContext.DTOs
 
         public string? LastName { get; set; }
 
-        public bool? IsActive { get; set; }
+        public string? PhoneNumber { get; set; }
+
+        public string? Department { get; set; }
 
     }
 }
