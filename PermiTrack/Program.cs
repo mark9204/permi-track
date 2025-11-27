@@ -43,6 +43,7 @@ namespace PermiTrack
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+            builder.Services.AddScoped<IAccessRequestService, AccessRequestService>();
             
             // Register Audit Service (Scoped for proper DI)
             builder.Services.AddScoped<IAuditService, AuditService>();

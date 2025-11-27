@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PermiTrack.DataContext;
 using PermiTrack.DataContext.DTOs;
 using PermiTrack.DataContext.Entites;
+using PermiTrack.DataContext.Enums;
 using System.Text.Json;
 
 namespace PermiTrack.Controllers;
@@ -39,7 +40,7 @@ public class AccessRequestsController : ControllerBase
             RequestedRoleId = role.Id,
             RequestedPermissions = "[]", // Not used currently
             Reason = req.Reason,
-            Status = "PENDING",
+            Status = RequestStatus.Pending,
             RequestedAt = DateTime.UtcNow,
             ExpiresAt = req.ExpiresAt,
             WorkflowId = wf.Id,
@@ -56,7 +57,7 @@ public class AccessRequestsController : ControllerBase
             ResourceId = 0,
             NewValues = JsonSerializer.Serialize(new { ar.UserId, RoleId = ar.RequestedRoleId, ar.WorkflowId, ar.ExpiresAt, ar.Reason }),
             CreatedAt = DateTime.UtcNow,
-            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
             UserAgent = Request.Headers.UserAgent.ToString()
         });
 
@@ -98,7 +99,7 @@ public class AccessRequestsController : ControllerBase
     {
         var ar = await _db.AccessRequests.FindAsync(id);
         if (ar is null) return NotFound();
-        if (ar.Status != "PENDING") return BadRequest(new { message = "Request is not pending." });
+        if (ar.Status != RequestStatus.Pending) return BadRequest(new { message = "Request is not pending." });
 
         // Get current step and check approver permissions
         var step = ar.CurrentStepId == null ? null : await _db.ApprovalSteps.FindAsync(ar.CurrentStepId);
@@ -125,7 +126,7 @@ public class AccessRequestsController : ControllerBase
         if (next == null)
         {
             // Final approval - assign the role
-            ar.Status = "APPROVED";
+            ar.Status = RequestStatus.Approved;
             ar.ApprovedAt = DateTime.UtcNow;
 
             _db.UserRoles.Add(new UserRole
@@ -158,7 +159,7 @@ public class AccessRequestsController : ControllerBase
                 ResourceId = ar.Id,
                 NewValues = JsonSerializer.Serialize(new { ar.Status, ar.ApprovedAt }),
                 CreatedAt = DateTime.UtcNow,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
                 UserAgent = Request.Headers.UserAgent.ToString()
             });
         }
@@ -178,7 +179,7 @@ public class AccessRequestsController : ControllerBase
                 ResourceId = ar.Id,
                 NewValues = JsonSerializer.Serialize(new { NextStepId = next.Id }),
                 CreatedAt = DateTime.UtcNow,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
                 UserAgent = Request.Headers.UserAgent.ToString()
             });
         }
@@ -193,7 +194,7 @@ public class AccessRequestsController : ControllerBase
     {
         var ar = await _db.AccessRequests.FindAsync(id);
         if (ar is null) return NotFound();
-        if (ar.Status != "PENDING") return BadRequest(new { message = "Request is not pending." });
+        if (ar.Status != RequestStatus.Pending) return BadRequest(new { message = "Request is not pending." });
 
         var step = ar.CurrentStepId == null ? null : await _db.ApprovalSteps.FindAsync(ar.CurrentStepId);
         if (step == null) return BadRequest(new { message = "No current step configured." });
@@ -205,7 +206,7 @@ public class AccessRequestsController : ControllerBase
             (ur.ExpiresAt == null || ur.ExpiresAt > DateTime.UtcNow));
         if (!hasRole) return Forbid();
 
-        ar.Status = "REJECTED";
+        ar.Status = RequestStatus.Rejected;
         ar.RejectedAt = DateTime.UtcNow;
         ar.RejectedBy = dto.ApproverUserId;
 
@@ -229,7 +230,7 @@ public class AccessRequestsController : ControllerBase
             ResourceId = ar.Id,
             NewValues = JsonSerializer.Serialize(new { Reason = dto.Reason }),
             CreatedAt = DateTime.UtcNow,
-            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
             UserAgent = Request.Headers.UserAgent.ToString()
         });
 
@@ -248,7 +249,7 @@ public class AccessRequestsController : ControllerBase
             .ToListAsync();
 
         var list = await _db.AccessRequests
-            .Where(a => a.Status == "PENDING")
+            .Where(a => a.Status == RequestStatus.Pending)
             .Join(_db.ApprovalSteps, a => a.CurrentStepId, s => s.Id, (a, s) => new { a, s })
             .Where(x => roleIds.Contains(x.s.ApproverRoleId))
             .OrderBy(x => x.a.RequestedAt)

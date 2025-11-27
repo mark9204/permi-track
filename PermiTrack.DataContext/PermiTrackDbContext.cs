@@ -153,11 +153,19 @@ public class PermiTrackDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
                 .IsRequired(false);
 
-            // Workflow relationship
+            // ProcessedBy - Restrict to avoid multiple cascade paths
+            entity.HasOne(ar => ar.ProcessedByUser)
+                .WithMany()
+                .HasForeignKey(ar => ar.ProcessedByUserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            // Workflow relationship (nullable)
             entity.HasOne(ar => ar.Workflow)
                 .WithMany()
                 .HasForeignKey(ar => ar.WorkflowId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
 
             entity.HasOne(ar => ar.CurrentStep)
                 .WithMany()
@@ -165,8 +173,20 @@ public class PermiTrackDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);
 
-            entity.Property(ar => ar.Status).HasMaxLength(50).IsRequired();
+            // Property configurations
+            entity.Property(ar => ar.Status)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+            
             entity.Property(ar => ar.RequestedPermissions).HasMaxLength(2000);
+            entity.Property(ar => ar.Reason).HasMaxLength(1000).IsRequired();
+            entity.Property(ar => ar.ReviewerComment).HasMaxLength(1000);
+
+            // Indexes for better query performance
+            entity.HasIndex(ar => ar.Status);
+            entity.HasIndex(ar => ar.UserId);
+            entity.HasIndex(ar => ar.RequestedAt);
         });
 
         // ApprovalWorkflow entity configuration
