@@ -42,9 +42,16 @@ namespace PermiTrack.DataContext.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("ProcessedByUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime?>("RejectedAt")
                         .HasColumnType("datetime2");
@@ -55,6 +62,9 @@ namespace PermiTrack.DataContext.Migrations
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("RequestedDurationHours")
+                        .HasColumnType("int");
+
                     b.Property<string>("RequestedPermissions")
                         .IsRequired()
                         .HasMaxLength(2000)
@@ -62,6 +72,10 @@ namespace PermiTrack.DataContext.Migrations
 
                     b.Property<long>("RequestedRoleId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("ReviewerComment")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -71,7 +85,7 @@ namespace PermiTrack.DataContext.Migrations
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("WorkflowId")
+                    b.Property<long?>("WorkflowId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
@@ -80,9 +94,15 @@ namespace PermiTrack.DataContext.Migrations
 
                     b.HasIndex("CurrentStepId");
 
+                    b.HasIndex("ProcessedByUserId");
+
                     b.HasIndex("RejectedBy");
 
+                    b.HasIndex("RequestedAt");
+
                     b.HasIndex("RequestedRoleId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("UserId");
 
@@ -224,6 +244,122 @@ namespace PermiTrack.DataContext.Migrations
                     b.ToTable("AuditLogs");
                 });
 
+            modelBuilder.Entity("PermiTrack.DataContext.Entites.HttpAuditLog", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AdditionalInfo")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<long>("DurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Method")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("QueryString")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("StatusCode")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StatusCode");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Method", "Path");
+
+                    b.ToTable("HttpAuditLogs");
+                });
+
+            modelBuilder.Entity("PermiTrack.DataContext.Entites.LoginAttempt", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("AttemptedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UserAgent")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptedAt");
+
+                    b.HasIndex("IpAddress");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserName");
+
+                    b.HasIndex("IsSuccess", "AttemptedAt");
+
+                    b.ToTable("LoginAttempts");
+                });
+
             modelBuilder.Entity("PermiTrack.DataContext.Entites.Notification", b =>
                 {
                     b.Property<long>("Id")
@@ -252,18 +388,14 @@ namespace PermiTrack.DataContext.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("RelatedResourceType")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -410,8 +542,7 @@ namespace PermiTrack.DataContext.Migrations
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -421,22 +552,18 @@ namespace PermiTrack.DataContext.Migrations
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserAgent")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TokenHash");
-
-                    b.HasIndex("UserId", "IsActive");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Sessions");
                 });
@@ -573,6 +700,11 @@ namespace PermiTrack.DataContext.Migrations
                         .HasForeignKey("CurrentStepId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("PermiTrack.DataContext.Entites.User", "ProcessedByUser")
+                        .WithMany()
+                        .HasForeignKey("ProcessedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("PermiTrack.DataContext.Entites.User", "RejectedByUser")
                         .WithMany()
                         .HasForeignKey("RejectedBy")
@@ -593,12 +725,13 @@ namespace PermiTrack.DataContext.Migrations
                     b.HasOne("PermiTrack.DataContext.Entites.ApprovalWorkflow", "Workflow")
                         .WithMany()
                         .HasForeignKey("WorkflowId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("CurrentStep");
+
+                    b.Navigation("ProcessedByUser");
 
                     b.Navigation("RejectedByUser");
 
@@ -629,6 +762,26 @@ namespace PermiTrack.DataContext.Migrations
                 });
 
             modelBuilder.Entity("PermiTrack.DataContext.Entites.AuditLog", b =>
+                {
+                    b.HasOne("PermiTrack.DataContext.Entites.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PermiTrack.DataContext.Entites.HttpAuditLog", b =>
+                {
+                    b.HasOne("PermiTrack.DataContext.Entites.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PermiTrack.DataContext.Entites.LoginAttempt", b =>
                 {
                     b.HasOne("PermiTrack.DataContext.Entites.User", "User")
                         .WithMany()

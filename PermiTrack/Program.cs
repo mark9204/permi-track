@@ -11,6 +11,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using PermiTrack.Authorization;
 using PermiTrack.Extensions;
+using PermiTrack.BackgroundJobs;
 
 
 namespace PermiTrack
@@ -24,12 +25,15 @@ namespace PermiTrack
             // DbContext Configuration with Factory for Audit Service
             var connectionString = builder.Configuration.GetConnectionString("PermiTrackContextDocker");
             
-            builder.Services.AddDbContext<PermiTrackDbContext>(options => 
-                options.UseSqlServer(connectionString));
 
             // Add DbContext Factory for Audit Service (to avoid DbContext lifetime conflicts)
-            builder.Services.AddDbContextFactory<PermiTrackDbContext>(options =>
-                options.UseSqlServer(connectionString));
+            // Register with a lambda that creates options inline to avoid singleton/scoped conflict
+            builder.Services.AddDbContextFactory<PermiTrackDbContext>((serviceProvider, options) =>
+            {
+                var config = serviceProvider.GetRequiredService<IConfiguration>();
+                var connString = config.GetConnectionString("PermiTrackContextDocker");
+                options.UseSqlServer(connString);
+            });
 
             // AutoMapper Configuration
             builder.Services.AddAutoMapper(cfg =>
@@ -46,8 +50,14 @@ namespace PermiTrack
             builder.Services.AddScoped<IAccessRequestService, AccessRequestService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
             
+            // SPEC 7: Register Security Service for Login Tracking
+            builder.Services.AddScoped<ISecurityService, SecurityService>();
+            
             // Register Audit Service (Scoped for proper DI)
             builder.Services.AddScoped<IAuditService, AuditService>();
+
+            // SPEC 12: Register Role Expiration Background Job (Automatic Role Expiration)
+            builder.Services.AddHostedService<RoleExpirationJob>();
 
             // JWT Authentication Configuration
             var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");

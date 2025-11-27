@@ -19,6 +19,7 @@ public class PermiTrackDbContext : DbContext
     public DbSet<HttpAuditLog> HttpAuditLogs => Set<HttpAuditLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Sessions> Sessions => Set<Sessions>();
+    public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -254,26 +255,26 @@ public class PermiTrackDbContext : DbContext
             entity.HasIndex(h => new { h.Method, h.Path });
         });
 
-        // Notification entity configuration
-        modelBuilder.Entity<Notification>(entity =>
+        // SPEC 7: LoginAttempt entity configuration (Security - Login Tracking)
+        modelBuilder.Entity<LoginAttempt>(entity =>
         {
-            entity.HasKey(n => n.Id);
-            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
-            entity.Property(n => n.Type)
-                .HasConversion<string>()
-                .HasMaxLength(50)
-                .IsRequired();
-            entity.Property(n => n.RelatedResourceType).HasMaxLength(100);
+            entity.HasKey(la => la.Id);
+            entity.Property(la => la.UserName).HasMaxLength(100).IsRequired();
+            entity.Property(la => la.IpAddress).HasMaxLength(50).IsRequired();
+            entity.Property(la => la.UserAgent).HasMaxLength(500).IsRequired();
+            entity.Property(la => la.FailureReason).HasMaxLength(200);
 
-            entity.HasOne(n => n.User)
+            entity.HasOne(la => la.User)
                 .WithMany()
-                .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(la => la.UserId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
 
-            // Indexes for better query performance
-            entity.HasIndex(n => n.UserId);
-            entity.HasIndex(n => new { n.UserId, n.IsRead });
-            entity.HasIndex(n => n.CreatedAt);
+            // Indexes for security monitoring and analysis
+            entity.HasIndex(la => la.AttemptedAt);
+            entity.HasIndex(la => la.IpAddress);
+            entity.HasIndex(la => la.UserName);
+            entity.HasIndex(la => new { la.IsSuccess, la.AttemptedAt });
         });
     }
 }
