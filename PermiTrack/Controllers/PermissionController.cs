@@ -12,7 +12,7 @@ namespace PermiTrack.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Require authentication for all endpoints
+[Authorize]
 public class PermissionsController : ControllerBase
 {
     private readonly PermiTrackDbContext _db;
@@ -50,7 +50,7 @@ public class PermissionsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Permissions.Add(e);       // EF maga generál Id-t (IDENTITY)
+        _db.Permissions.Add(e);       // Entity Framework automatically generates ID (IDENTITY)
         await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(Get), new { id = e.Id },

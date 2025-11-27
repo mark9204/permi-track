@@ -13,7 +13,7 @@ namespace PermiTrack.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Require authentication for all endpoints
+[Authorize]
 public class RolesController : ControllerBase
 {
     private readonly PermiTrackDbContext _db;
@@ -53,6 +53,7 @@ public class RolesController : ControllerBase
 
         return CreatedAtAction(nameof(Get), new { id = role.Id }, role);
     }
+    
     [HttpPut("{id:long}")]
     public async Task<ActionResult<RoleDTO>> Update(long id, RoleDTO dto)
     {

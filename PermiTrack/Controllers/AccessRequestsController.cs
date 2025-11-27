@@ -14,7 +14,7 @@ public class AccessRequestsController : ControllerBase
     private readonly PermiTrackDbContext _db;
     public AccessRequestsController(PermiTrackDbContext db) => _db = db;
 
-    // 1) Kérelem létrehozása
+    // 1) Create access request
     [HttpPost]
     public async Task<IActionResult> Create(CreateAccessRequestDTO req)
     {
@@ -27,7 +27,7 @@ public class AccessRequestsController : ControllerBase
         var wf = await _db.ApprovalWorkflows.FindAsync(req.WorkflowId);
         if (wf is null) return NotFound(new { message = $"Workflow {req.WorkflowId} not found" });
 
-        // első step
+        // Get the first step
         var firstStep = await _db.ApprovalSteps
             .Where(s => s.WorkflowId == wf.Id)
             .OrderBy(s => s.StepOrder)
@@ -37,7 +37,7 @@ public class AccessRequestsController : ControllerBase
         {
             UserId = user.Id,
             RequestedRoleId = role.Id,
-            RequestedPermissions = "[]", // most nem használjuk
+            RequestedPermissions = "[]", // Not used currently
             Reason = req.Reason,
             Status = "PENDING",
             RequestedAt = DateTime.UtcNow,
@@ -47,7 +47,7 @@ public class AccessRequestsController : ControllerBase
         };
         _db.AccessRequests.Add(ar);
 
-        // Audit
+        // Create audit log
         _db.AuditLogs.Add(new AuditLog
         {
             UserId = req.RequestedByUserId,
@@ -62,17 +62,17 @@ public class AccessRequestsController : ControllerBase
 
         await _db.SaveChangesAsync();
 
-        // Notif: küldjük a firstStep role-jának
+        // Send notification to approver role of the first step
         if (firstStep != null)
         {
             await NotifyApproverRole(ar.Id, firstStep.ApproverRoleId,
-                $"Új hozzáférés-kérelem #{ar.Id}", $"User: {req.Username}, Role: {req.RoleName}");
+                $"New access request #{ar.Id}", $"User: {req.Username}, Role: {req.RoleName}");
         }
 
         return CreatedAtAction(nameof(Get), new { id = ar.Id }, new { ar.Id, ar.Status, ar.CurrentStepId });
     }
 
-    // 2) Lekérdezés
+    // 2) Get access request by ID
     [HttpGet("{id:long}")]
     public async Task<IActionResult> Get(long id)
     {
@@ -92,7 +92,7 @@ public class AccessRequestsController : ControllerBase
         });
     }
 
-    // 3) Jóváhagyás (aktuális lépés)
+    // 3) Approve current step
     [HttpPost("{id:long}/approve")]
     public async Task<IActionResult> Approve(long id, ApproveRequestDTO dto)
     {
@@ -100,11 +100,11 @@ public class AccessRequestsController : ControllerBase
         if (ar is null) return NotFound();
         if (ar.Status != "PENDING") return BadRequest(new { message = "Request is not pending." });
 
-        // step + jogosultság ellenőrzés
+        // Get current step and check approver permissions
         var step = ar.CurrentStepId == null ? null : await _db.ApprovalSteps.FindAsync(ar.CurrentStepId);
         if (step == null) return BadRequest(new { message = "No current step configured." });
 
-        // Approver rendelkezik-e a step-hez szükséges Role-lal?
+        // Check if approver has the required role for this step
         var hasRole = await _db.UserRoles.AnyAsync(ur =>
             ur.UserId == dto.ApproverUserId &&
             ur.RoleId == step.ApproverRoleId &&
@@ -113,10 +113,10 @@ public class AccessRequestsController : ControllerBase
 
         if (!hasRole) return Forbid($"User {dto.ApproverUserId} is not allowed to approve step {step.Id}.");
 
-        // count approvals (egyszerű MVP: step.RequiredApprovals=1, külön approvals tábla nélkül)
-        // Ha szeretnéd több approvalt, vegyünk fel egy ApprovalEvents táblát. Most az MVP: egy katt = kész step.
+        // Count approvals (Simple MVP: step.RequiredApprovals=1, no separate approvals table)
+        // For multiple approvals, consider adding an ApprovalEvents table. Currently MVP: one click completes step.
 
-        // lépés lezárása → következő step vagy véglegesítés
+        // Close current step and move to next step or finalize
         var next = await _db.ApprovalSteps
             .Where(s => s.WorkflowId == step.WorkflowId && s.StepOrder > step.StepOrder)
             .OrderBy(s => s.StepOrder)
@@ -124,7 +124,7 @@ public class AccessRequestsController : ControllerBase
 
         if (next == null)
         {
-            // végleges jóváhagyás → role kiosztás
+            // Final approval - assign the role
             ar.Status = "APPROVED";
             ar.ApprovedAt = DateTime.UtcNow;
 
@@ -141,8 +141,8 @@ public class AccessRequestsController : ControllerBase
             await _db.Notifications.AddAsync(new Notification
             {
                 UserId = ar.UserId,
-                Title = "Hozzáférés engedélyezve",
-                Message = $"A(z) {ar.RequestedRoleId} szerepkör megadva.",
+                Title = "Access granted",
+                Message = $"Role {ar.RequestedRoleId} has been assigned.",
                 Type = "SUCCESS",
                 IsRead = false,
                 CreatedAt = DateTime.UtcNow,
@@ -164,11 +164,11 @@ public class AccessRequestsController : ControllerBase
         }
         else
         {
-            // következő stepre lépünk
+            // Move to next step
             ar.CurrentStepId = next.Id;
 
             await NotifyApproverRole(ar.Id, next.ApproverRoleId,
-                $"Jóváhagyás szükséges #{ar.Id}", "Következő lépés jóváhagyása szükséges.");
+                $"Approval needed #{ar.Id}", "Approval needed for next step.");
 
             _db.AuditLogs.Add(new AuditLog
             {
@@ -187,7 +187,7 @@ public class AccessRequestsController : ControllerBase
         return Ok(new { ar.Id, ar.Status, ar.ApprovedAt, ar.CurrentStepId });
     }
 
-    // 4) Elutasítás
+    // 4) Reject access request
     [HttpPost("{id:long}/reject")]
     public async Task<IActionResult> Reject(long id, RejectRequestDTO dto)
     {
@@ -212,7 +212,7 @@ public class AccessRequestsController : ControllerBase
         await _db.Notifications.AddAsync(new Notification
         {
             UserId = ar.UserId,
-            Title = "Hozzáférés elutasítva",
+            Title = "Access denied",
             Message = dto.Reason,
             Type = "ERROR",
             IsRead = false,
@@ -237,11 +237,11 @@ public class AccessRequestsController : ControllerBase
         return Ok(new { ar.Id, ar.Status, ar.RejectedAt });
     }
 
-    // 5) Approver teendői (aktuális lépés szerint)
+    // 5) Get pending requests for approver
     [HttpGet("pending-for/{approverUserId:long}")]
     public async Task<IActionResult> PendingFor(long approverUserId)
     {
-        // a user milyen role-okat visel?
+        // Get all roles the user has
         var roleIds = await _db.UserRoles
             .Where(ur => ur.UserId == approverUserId && ur.IsActive && (ur.ExpiresAt == null || ur.ExpiresAt > DateTime.UtcNow))
             .Select(ur => ur.RoleId)
@@ -258,7 +258,7 @@ public class AccessRequestsController : ControllerBase
         return Ok(list);
     }
 
-    // helper: küldjünk notit minden olyan usernek, akinek megvan az ApproverRole
+    // Helper method: Send notification to all users with the ApproverRole
     private async Task NotifyApproverRole(long accessRequestId, long approverRoleId, string title, string message)
     {
         var approvers = await _db.UserRoles

@@ -62,10 +62,10 @@ namespace PermiTrack
 
             builder.Services.AddAuthorization();
 
-            // Add services to the container.
+            // Add controllers
             builder.Services.AddControllers();
 
-            //Frontend CORS allow
+            // Frontend CORS policy - allow requests from frontend
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
@@ -76,13 +76,13 @@ namespace PermiTrack
                 });
             });
             
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            // Swagger/OpenAPI configuration for API documentation
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // Configure the HTTP request pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

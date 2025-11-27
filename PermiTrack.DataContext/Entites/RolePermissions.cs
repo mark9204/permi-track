@@ -11,12 +11,12 @@ namespace PermiTrack.DataContext.Entites
         public long Id { get; set; }
         public long RoleId { get; set; }
         public long PermissionId { get; set; }
-        public DateTime GrantedAt { get; set; }
+        public DateTime GrantedAt { get; set; } = DateTime.UtcNow;
         public long? GrantedBy { get; set; }
 
         // Navigation properties
-        public Role Role { get; set; }
-        public Permission Permission { get; set; }
-        public User GrantedByUser { get; set; }
+        public Role Role { get; set; } = default!;
+        public Permission Permission { get; set; } = default!;
+        public User? GrantedByUser { get; set; } // Nullable - audit field
     }
 }

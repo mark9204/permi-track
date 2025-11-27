@@ -31,7 +31,7 @@ public class UserManagementService : IUserManagementService
         CreateUserRequest request,
         long adminUserId)
     {
-        // Validate uniqueness
+        // Check if username or email already exists
         var existingUser = await _db.Users
             .FirstOrDefaultAsync(u => u.Username == request.Username || u.Email == request.Email);
 
@@ -43,7 +43,7 @@ public class UserManagementService : IUserManagementService
                 return (false, "Email already exists", null);
         }
 
-        // Generate random password if not provided
+        // Use provided password or generate a random one
         var password = string.IsNullOrWhiteSpace(request.Password)
             ? GenerateRandomPassword()
             : request.Password;
@@ -66,7 +66,7 @@ public class UserManagementService : IUserManagementService
 
         _db.Users.Add(user);
 
-        // Audit log
+        // Create audit log entry
         var auditLog = new AuditLog
         {
             UserId = adminUserId,
@@ -130,7 +130,7 @@ public class UserManagementService : IUserManagementService
     {
         var query = _db.Users.AsNoTracking().AsQueryable();
 
-        // Filters
+        // Apply filters
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             query = query.Where(u =>
@@ -262,7 +262,7 @@ public class UserManagementService : IUserManagementService
 
         user.UpdatedAt = DateTime.UtcNow;
 
-        // Audit log
+        // Create audit log entry
         _db.AuditLogs.Add(new AuditLog
         {
             UserId = adminUserId,
@@ -308,7 +308,7 @@ public class UserManagementService : IUserManagementService
             role.IsActive = false;
         }
 
-        // Audit log
+        // Create audit log entry
         _db.AuditLogs.Add(new AuditLog
         {
             UserId = adminUserId,
@@ -354,7 +354,7 @@ public class UserManagementService : IUserManagementService
             }
         }
 
-        // Audit log
+        // Create audit log entry
         _db.AuditLogs.Add(new AuditLog
         {
             UserId = adminUserId,
@@ -388,7 +388,7 @@ public class UserManagementService : IUserManagementService
 
             try
             {
-                // Validate
+                // Validate required fields
                 if (string.IsNullOrWhiteSpace(userItem.Username) || string.IsNullOrWhiteSpace(userItem.Email))
                 {
                     result.Errors.Add(new BulkUserImportError
@@ -402,7 +402,7 @@ public class UserManagementService : IUserManagementService
                     continue;
                 }
 
-                // Check duplicates
+                // Check for duplicates
                 var exists = await _db.Users.AnyAsync(u => u.Username == userItem.Username || u.Email == userItem.Email);
                 if (exists)
                 {
@@ -483,7 +483,7 @@ public class UserManagementService : IUserManagementService
             }
         }
 
-        // Audit log
+        // Create audit log entry
         _db.AuditLogs.Add(new AuditLog
         {
             UserId = adminUserId,

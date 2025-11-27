@@ -18,31 +18,31 @@ public class RoleGrantsController : ControllerBase
     [HttpPost("role")]
     public async Task<IActionResult> GrantRole([FromBody] GrantRoleRequest req)
     {
-        // 1) target user + role felkutatása
+        // 1) Find target user and role
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == req.Username);
         if (user is null) return NotFound(new { message = $"User '{req.Username}' not found" });
 
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Name == req.RoleName);
         if (role is null) return NotFound(new { message = $"Role '{req.RoleName}' not found" });
 
-        // 2) dup check
+        // 2) Check for duplicates
         var exists = await _db.UserRoles.AnyAsync(ur => ur.UserId == user.Id && ur.RoleId == role.Id);
         if (exists) return Conflict(new { message = "User already has this role" });
 
-        // 3) hozzárendelés
+        // 3) Assign the role
         var link = new UserRole
         {
             UserId = user.Id,
             RoleId = role.Id,
             AssignedAt = DateTime.UtcNow,
-            AssignedBy = req.AdminUserId,       // amíg nincs JWT
+            AssignedBy = req.AdminUserId,       // Until JWT is implemented
             ExpiresAt = req.ExpiresAt,
             IsActive = true
         };
         _db.UserRoles.Add(link);
 
-        // 4) Audit log
-        var admin = await _db.Users.FindAsync(req.AdminUserId); // lehet null (system)
+        // 4) Create audit log entry
+        var admin = await _db.Users.FindAsync(req.AdminUserId); // Can be null (system)
         var newValues = new
         {
             link.UserId,
@@ -56,10 +56,10 @@ public class RoleGrantsController : ControllerBase
 
         _db.AuditLogs.Add(new AuditLog
         {
-            UserId = req.AdminUserId == 0 ? null : req.AdminUserId,   // null = system
+            UserId = req.AdminUserId == 0 ? null : req.AdminUserId,   // null means system action
             Action = "ASSIGN_ROLE",
             ResourceType = "UserRoles",
-            ResourceId = 0, // nincs még Id, de később frissíthetnénk SaveChanges után
+            ResourceId = 0, // No ID yet, could be updated after SaveChanges if needed
             OldValues = null,
             NewValues = JsonSerializer.Serialize(newValues),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
@@ -67,7 +67,7 @@ public class RoleGrantsController : ControllerBase
             CreatedAt = DateTime.UtcNow
         });
 
-        await _db.SaveChangesAsync(); // itt kap Id-t a link
+        await _db.SaveChangesAsync(); // Entity gets ID here
 
         return Ok(new
         {

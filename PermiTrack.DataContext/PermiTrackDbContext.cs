@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using PermiTrack.DataContext.Entites;
-using System.Security.AccessControl;
 
 namespace PermiTrack.DataContext;
 
@@ -13,165 +12,231 @@ public class PermiTrackDbContext : DbContext
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<AccessRequest> AccessRequests => Set<AccessRequest>();
     public DbSet<ApprovalWorkflow> ApprovalWorkflows => Set<ApprovalWorkflow>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
-    public DbSet<AccessRequest> AccessRequests => Set<AccessRequest>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Sessions> Sessions => Set<Sessions>();
 
-    protected override void OnModelCreating(ModelBuilder m)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        base.OnModelCreating(m);
+        base.OnModelCreating(modelBuilder);
 
-        // Users
-        // UserRoles
-        m.Entity<UserRole>(e =>
+        // User entity configuration
+        modelBuilder.Entity<User>(entity =>
         {
-            e.ToTable("UserRoles");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.AssignedAt).HasDefaultValueSql("GETUTCDATE()");
-
-            e.HasOne(x => x.User)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasOne(x => x.Role)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasOne(x => x.AssignedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.AssignedBy)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
+            entity.HasKey(u => u.Id);
+            entity.HasIndex(u => u.Username).IsUnique();
+            entity.HasIndex(u => u.Email).IsUnique();
+            entity.Property(u => u.Username).HasMaxLength(100).IsRequired();
+            entity.Property(u => u.Email).HasMaxLength(255).IsRequired();
+            entity.Property(u => u.PasswordHash).HasMaxLength(500).IsRequired();
         });
 
-        // RolePermissions
-        m.Entity<RolePermission>(e =>
+        // Role entity configuration with hierarchy support
+        modelBuilder.Entity<Role>(entity =>
         {
-            e.ToTable("RolePermissions");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.GrantedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasKey(r => r.Id);
+            entity.HasIndex(r => r.Name).IsUnique();
+            entity.Property(r => r.Name).HasMaxLength(100).IsRequired();
+            entity.Property(r => r.Description).HasMaxLength(500);
 
-            e.HasOne(x => x.Role)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // Self-referencing relationship: Role -> ParentRole
+            entity.HasOne(r => r.ParentRole)
+                .WithMany(r => r.SubRoles)
+                .HasForeignKey(r => r.ParentRoleId)
+                .OnDelete(DeleteBehavior.Restrict); // Do not delete children automatically
+        });
+            
+        // Permission entity configuration with unique constraint
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Resource).HasMaxLength(100).IsRequired();
+            entity.Property(p => p.Action).HasMaxLength(50).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(500);
 
-            e.HasOne(x => x.Permission)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.PermissionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasOne(x => x.GrantedByUser)
-                .WithMany()
-                .HasForeignKey(x => x.GrantedBy)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            e.HasIndex(x => new { x.RoleId, x.PermissionId }).IsUnique();
+            // Unique index: (Resource, Action) combination must be unique
+            entity.HasIndex(p => new { p.Resource, p.Action })
+                .IsUnique()
+                .HasDatabaseName("IX_Permission_Resource_Action_Unique");
         });
 
-        // ApprovalSteps
-        m.Entity<ApprovalStep>(e =>
+        // UserRole configuration (Many-to-Many: User to Role)
+        modelBuilder.Entity<UserRole>(entity =>
         {
-            e.ToTable("ApprovalSteps");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.HasKey(ur => ur.Id);
+            
+            // Composite unique index: (UserId, RoleId)
+            entity.HasIndex(ur => new { ur.UserId, ur.RoleId })
+                .IsUnique()
+                .HasDatabaseName("IX_UserRole_UserId_RoleId_Unique");
 
-            e.HasOne(x => x.Workflow)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.WorkflowId)
+            // Primary relationships
+            entity.HasOne(ur => ur.User)
+                .WithMany(u => u.UserRoles)
+                .HasForeignKey(ur => ur.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            e.HasOne(x => x.ApproverRole)
+            entity.HasOne(ur => ur.Role)
+                .WithMany(r => r.UserRoles)
+                .HasForeignKey(ur => ur.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Audit field - no cascade delete to prevent conflicts
+            entity.HasOne(ur => ur.AssignedByUser)
                 .WithMany()
-                .HasForeignKey(x => x.ApproverRoleId)
+                .HasForeignKey(ur => ur.AssignedBy)
+                .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
+                .IsRequired(false);
+        });
+
+        // RolePermission configuration (Many-to-Many: Role to Permission)
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasKey(rp => rp.Id);
+            
+            entity.HasIndex(rp => new { rp.RoleId, rp.PermissionId })
+                .IsUnique()
+                .HasDatabaseName("IX_RolePermission_RoleId_PermissionId_Unique");
+
+            // Primary relationships
+            entity.HasOne(rp => rp.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(rp => rp.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rp => rp.Permission)
+                .WithMany(p => p.RolePermissions)
+                .HasForeignKey(rp => rp.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Audit field - no cascade delete to prevent conflicts
+            entity.HasOne(rp => rp.GrantedByUser)
+                .WithMany()
+                .HasForeignKey(rp => rp.GrantedBy)
+                .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
+                .IsRequired(false);
+        });
+
+        // AccessRequest entity configuration
+        modelBuilder.Entity<AccessRequest>(entity =>
+        {
+            entity.HasKey(ar => ar.Id);
+
+            // Primary relationship: User who requested
+            entity.HasOne(ar => ar.User)
+                .WithMany()
+                .HasForeignKey(ar => ar.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // If user is deleted, delete the request
+
+            // Requested role
+            entity.HasOne(ar => ar.RequestedRole)
+                .WithMany()
+                .HasForeignKey(ar => ar.RequestedRoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            e.HasIndex(x => new { x.WorkflowId, x.StepOrder }).IsUnique();
+            // Audit fields - no cascade delete to prevent conflicts
+            // ApprovedBy - Restrict to avoid multiple cascade paths
+            entity.HasOne(ar => ar.ApprovedByUser)
+                .WithMany()
+                .HasForeignKey(ar => ar.ApprovedBy)
+                .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
+                .IsRequired(false);
+
+            // RejectedBy - Restrict to avoid multiple cascade paths
+            entity.HasOne(ar => ar.RejectedByUser)
+                .WithMany()
+                .HasForeignKey(ar => ar.RejectedBy)
+                .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
+                .IsRequired(false);
+
+            // Workflow relationship
+            entity.HasOne(ar => ar.Workflow)
+                .WithMany()
+                .HasForeignKey(ar => ar.WorkflowId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(ar => ar.CurrentStep)
+                .WithMany()
+                .HasForeignKey(ar => ar.CurrentStepId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
+            entity.Property(ar => ar.Status).HasMaxLength(50).IsRequired();
+            entity.Property(ar => ar.RequestedPermissions).HasMaxLength(2000);
         });
 
-        // AccessRequests
-        m.Entity<AccessRequest>(e =>
+        // ApprovalWorkflow entity configuration
+        modelBuilder.Entity<ApprovalWorkflow>(entity =>
         {
-            e.ToTable("AccessRequests");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.RequestedAt).HasDefaultValueSql("GETUTCDATE()");
-            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(50).IsRequired();
-            e.Property(x => x.RequestedPermissions).HasColumnType("NVARCHAR(MAX)");
-
-            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.RequestedRole).WithMany().HasForeignKey(x => x.RequestedRoleId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedBy).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.RejectedByUser).WithMany().HasForeignKey(x => x.RejectedBy).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.Workflow).WithMany().HasForeignKey(x => x.WorkflowId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.CurrentStep).WithMany().HasForeignKey(x => x.CurrentStepId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasKey(w => w.Id);
+            entity.Property(w => w.Name).HasMaxLength(200).IsRequired();
+            entity.Property(w => w.Description).HasMaxLength(1000);
         });
 
-        // AuditLogs
-        m.Entity<AuditLog>(e =>
+        // ApprovalStep entity configuration
+        modelBuilder.Entity<ApprovalStep>(entity =>
         {
-            e.ToTable("AuditLogs");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.Action).IsRequired().HasMaxLength(100);
-            e.Property(x => x.ResourceType).IsRequired().HasMaxLength(100);
-            e.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            e.Property(x => x.OldValues).HasColumnType("NVARCHAR(MAX)");
-            e.Property(x => x.NewValues).HasColumnType("NVARCHAR(MAX)");
-            e.Property(x => x.IpAddress).HasMaxLength(45);
-            e.Property(x => x.UserAgent).HasMaxLength(500);
+            entity.HasKey(s => s.Id);
 
-            e.HasOne(x => x.User)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(s => s.Workflow)
+                .WithMany(w => w.Steps)
+                .HasForeignKey(s => s.WorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.ApproverRole)
+                .WithMany(r => r.ApprovalSteps)
+                .HasForeignKey(s => s.ApproverRoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(s => s.StepName).HasMaxLength(200).IsRequired();
         });
 
-        // Notifications
-        m.Entity<Notification>(e =>
+        // AuditLog entity configuration
+        modelBuilder.Entity<AuditLog>(entity =>
         {
-            e.ToTable("Notifications");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.Title).IsRequired().HasMaxLength(200);
-            e.Property(x => x.Message).IsRequired().HasMaxLength(1000);
-            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(50).IsRequired();
-            e.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            e.Property(x => x.RelatedResourceType).HasMaxLength(100);
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.Action).HasMaxLength(100).IsRequired();
+            entity.Property(a => a.ResourceType).HasMaxLength(100);
+            entity.Property(a => a.IpAddress).HasMaxLength(50);
+            entity.Property(a => a.UserAgent).HasMaxLength(500);
 
-            e.HasOne(x => x.User)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.UserId)
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Notification entity configuration
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+            entity.Property(n => n.Type).HasMaxLength(50).IsRequired();
+
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Sessions
-        m.Entity<Sessions>(e =>
+        // Sessions entity configuration
+        modelBuilder.Entity<Sessions>(entity =>
         {
-            e.ToTable("Sessions");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Id).ValueGeneratedOnAdd();
-            e.Property(x => x.TokenHash).IsRequired().HasMaxLength(255);
-            e.Property(x => x.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
-            e.Property(x => x.IpAddress).HasMaxLength(45);
-            e.Property(x => x.UserAgent).HasMaxLength(500);
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.TokenHash).HasMaxLength(500).IsRequired();
+            entity.Property(s => s.IpAddress).HasMaxLength(50);
+            entity.Property(s => s.UserAgent).HasMaxLength(500);
 
-            e.HasOne(x => x.User)
-                .WithMany() // <-- EZ!
-                .HasForeignKey(x => x.UserId)
+            entity.HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            e.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(s => s.TokenHash);
+            entity.HasIndex(s => new { s.UserId, s.IsActive });
         });
-
     }
 }

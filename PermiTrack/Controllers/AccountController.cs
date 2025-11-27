@@ -22,9 +22,7 @@ public class AccountController : ControllerBase
         _passwordHasher = passwordHasher;
     }
 
-    /// <summary>
-    /// Get current user's profile
-    /// </summary>
+    // Get current user's profile
     [HttpGet("profile")]
     public async Task<ActionResult<UserDTO>> GetProfile()
     {
@@ -53,9 +51,7 @@ public class AccountController : ControllerBase
         return Ok(user);
     }
 
-    /// <summary>
-    /// Change current user's password
-    /// </summary>
+    // Change current user's password
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
     {
@@ -92,9 +88,7 @@ public class AccountController : ControllerBase
         return Ok(new { message = "Password changed successfully. Please login again." });
     }
 
-    /// <summary>
-    /// Update current user's profile
-    /// </summary>
+    // Update current user's profile
     [HttpPut("profile")]
     public async Task<ActionResult<UserDTO>> UpdateProfile([FromBody] UpdateProfileRequest request)
     {

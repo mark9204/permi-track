@@ -19,9 +19,7 @@ public class SessionController : ControllerBase
         _db = db;
     }
 
-    /// <summary>
-    /// Get all active sessions for the current user
-    /// </summary>
+    // Get all active sessions for the current user
     [HttpGet("my-sessions")]
     public async Task<ActionResult<IEnumerable<SessionDTO>>> GetMySessions()
     {
@@ -44,9 +42,7 @@ public class SessionController : ControllerBase
         return Ok(sessions);
     }
 
-    /// <summary>
-    /// Terminate a specific session
-    /// </summary>
+    // Terminate a specific session
     [HttpDelete("{sessionId:long}")]
     public async Task<IActionResult> TerminateSession(long sessionId)
     {
@@ -66,9 +62,7 @@ public class SessionController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Terminate all sessions except the current one
-    /// </summary>
+    // Terminate all sessions except the current one
     [HttpPost("terminate-all-others")]
     public async Task<IActionResult> TerminateAllOtherSessions()
     {
@@ -96,9 +90,7 @@ public class SessionController : ControllerBase
         return Ok(new { message = "All other sessions terminated successfully" });
     }
 
-    /// <summary>
-    /// Terminate all sessions (logout from all devices)
-    /// </summary>
+    // Terminate all sessions (logout from all devices)
     [HttpPost("terminate-all")]
     public async Task<IActionResult> TerminateAllSessions()
     {

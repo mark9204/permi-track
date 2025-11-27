@@ -11,10 +11,10 @@ namespace PermiTrack.DataContext.Entites
         public long Id { get; set; }
         public long UserId { get; set; }
         public long RequestedRoleId { get; set; }
-        public string RequestedPermissions { get; set; } // JSON 
-        public string Reason { get; set; }
-        public string Status { get; set; }
-        public DateTime RequestedAt { get; set; }
+        public string RequestedPermissions { get; set; } = string.Empty; // JSON 
+        public string Reason { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty; // "Pending", "Approved", "Rejected"
+        public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
         public DateTime? ApprovedAt { get; set; }
         public long? ApprovedBy { get; set; }
         public DateTime? RejectedAt { get; set; }
@@ -23,12 +23,12 @@ namespace PermiTrack.DataContext.Entites
         public long WorkflowId { get; set; }
         public long? CurrentStepId { get; set; }
 
-        // Navigation properties (nullable where appropriate)
-        public User User { get; set; }
-        public Role RequestedRole { get; set; }
-        public User ApprovedByUser { get; set; }
-        public User RejectedByUser { get; set; }
-        public ApprovalWorkflow Workflow { get; set; }
-        public ApprovalStep CurrentStep { get; set; }
+        // Navigation properties
+        public User User { get; set; } = default!;
+        public Role RequestedRole { get; set; } = default!;
+        public User? ApprovedByUser { get; set; } // Nullable - audit field
+        public User? RejectedByUser { get; set; } // Nullable - audit field
+        public ApprovalWorkflow Workflow { get; set; } = default!;
+        public ApprovalStep? CurrentStep { get; set; }
     }
 }

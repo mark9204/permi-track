@@ -11,14 +11,14 @@ namespace PermiTrack.DataContext.Entites
         public long Id { get; set; }
         public long UserId { get; set; }
         public long RoleId { get; set; }
-        public DateTime AssignedAt { get; set; }
+        public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
         public long? AssignedBy { get; set; }
         public DateTime? ExpiresAt { get; set; }
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // Navigation properties
-        public User User { get; set; }
-        public Role Role { get; set; }
-        public User AssignedByUser { get; set; }
+        public User User { get; set; } = default!;
+        public Role Role { get; set; } = default!;
+        public User? AssignedByUser { get; set; } // Nullable - audit field
     }
 }

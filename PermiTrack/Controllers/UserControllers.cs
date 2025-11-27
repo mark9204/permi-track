@@ -9,7 +9,7 @@ namespace PermiTrack.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Require authentication for all endpoints
+[Authorize]
 public class UsersController : ControllerBase
 {
     private readonly IUserManagementService _userManagementService;
