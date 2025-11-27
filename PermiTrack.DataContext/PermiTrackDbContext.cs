@@ -253,5 +253,27 @@ public class PermiTrackDbContext : DbContext
             entity.HasIndex(h => h.StatusCode);
             entity.HasIndex(h => new { h.Method, h.Path });
         });
+
+        // Notification entity configuration
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
+            entity.Property(n => n.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50)
+                .IsRequired();
+            entity.Property(n => n.RelatedResourceType).HasMaxLength(100);
+
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Indexes for better query performance
+            entity.HasIndex(n => n.UserId);
+            entity.HasIndex(n => new { n.UserId, n.IsRead });
+            entity.HasIndex(n => n.CreatedAt);
+        });
     }
 }

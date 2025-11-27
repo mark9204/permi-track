@@ -15,13 +15,16 @@ public class AccessRequestService : IAccessRequestService
 {
     private readonly PermiTrackDbContext _context;
     private readonly ILogger<AccessRequestService> _logger;
+    private readonly INotificationService _notificationService;
 
     public AccessRequestService(
         PermiTrackDbContext context,
-        ILogger<AccessRequestService> logger)
+        ILogger<AccessRequestService> logger,
+        INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<AccessRequestDTO> SubmitRequestAsync(long userId, SubmitAccessRequestDTO request)
@@ -169,6 +172,34 @@ public class AccessRequestService : IAccessRequestService
                 "Access request {RequestId} approved by user {ReviewerId}. Role {RoleId} granted to user {UserId}",
                 requestId, reviewerUserId, accessRequest.RequestedRoleId, accessRequest.UserId);
 
+            // INTEGRATION: Send notification to the requester AFTER successful commit
+            try
+            {
+                var expirationInfo = expiresAt.HasValue 
+                    ? $" (expires at {expiresAt.Value:yyyy-MM-dd HH:mm})" 
+                    : "";
+
+                await _notificationService.SendNotificationAsync(
+                    accessRequest.UserId,
+                    "Access Request Approved! ?",
+                    $"Your request for the '{accessRequest.RequestedRole.Name}' role has been approved! " +
+                    $"You now have access to this role{expirationInfo}.",
+                    NotificationType.Success,
+                    "AccessRequest",
+                    accessRequest.Id);
+
+                _logger.LogInformation(
+                    "Approval notification sent to user {UserId} for request {RequestId}",
+                    accessRequest.UserId, requestId);
+            }
+            catch (Exception notificationEx)
+            {
+                // Log but don't fail the approval if notification fails
+                _logger.LogError(notificationEx,
+                    "Failed to send approval notification for request {RequestId}. The approval was still successful.",
+                    requestId);
+            }
+
             return await MapToDTO(accessRequest);
         }
         catch (Exception ex)
@@ -232,6 +263,30 @@ public class AccessRequestService : IAccessRequestService
         _logger.LogInformation(
             "Access request {RequestId} rejected by user {ReviewerId}",
             requestId, reviewerUserId);
+
+        // INTEGRATION: Send notification to the requester
+        try
+        {
+            await _notificationService.SendNotificationAsync(
+                accessRequest.UserId,
+                "Access Request Rejected ?",
+                $"Your request for the '{accessRequest.RequestedRole.Name}' role has been rejected. " +
+                $"Reason: {rejectionDto.ReviewerComment}",
+                NotificationType.Error,
+                "AccessRequest",
+                accessRequest.Id);
+
+            _logger.LogInformation(
+                "Rejection notification sent to user {UserId} for request {RequestId}",
+                accessRequest.UserId, requestId);
+        }
+        catch (Exception notificationEx)
+        {
+            // Log but don't fail the rejection if notification fails
+            _logger.LogError(notificationEx,
+                "Failed to send rejection notification for request {RequestId}. The rejection was still successful.",
+                requestId);
+        }
 
         return await MapToDTO(accessRequest);
     }
