@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using PermiTrack.Authorization;
+using PermiTrack.Extensions;
 
 
 namespace PermiTrack
@@ -20,8 +21,15 @@ namespace PermiTrack
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // DbContext Configuration with Factory for Audit Service
+            var connectionString = builder.Configuration.GetConnectionString("PermiTrackContextDocker");
+            
             builder.Services.AddDbContext<PermiTrackDbContext>(options => 
-                options.UseSqlServer(builder.Configuration.GetConnectionString("PermiTrackContextDocker")));
+                options.UseSqlServer(connectionString));
+
+            // Add DbContext Factory for Audit Service (to avoid DbContext lifetime conflicts)
+            builder.Services.AddDbContextFactory<PermiTrackDbContext>(options =>
+                options.UseSqlServer(connectionString));
 
             // AutoMapper Configuration
             builder.Services.AddAutoMapper(cfg =>
@@ -35,6 +43,9 @@ namespace PermiTrack
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+            
+            // Register Audit Service (Scoped for proper DI)
+            builder.Services.AddScoped<IAuditService, AuditService>();
 
             // JWT Authentication Configuration
             var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured");
@@ -102,8 +113,14 @@ namespace PermiTrack
 
             app.UseCors();
 
+            // Authentication and Authorization MUST come before Audit Logging
+            // so that user context is available
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Add Audit Logging Middleware AFTER authentication/authorization
+            // but BEFORE endpoint mapping to capture user information
+            app.UseAuditLogging();
 
             app.MapControllers();
 

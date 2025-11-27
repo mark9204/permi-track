@@ -16,6 +16,7 @@ public class PermiTrackDbContext : DbContext
     public DbSet<ApprovalWorkflow> ApprovalWorkflows => Set<ApprovalWorkflow>();
     public DbSet<ApprovalStep> ApprovalSteps => Set<ApprovalStep>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<HttpAuditLog> HttpAuditLogs => Set<HttpAuditLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Sessions> Sessions => Set<Sessions>();
 
@@ -209,34 +210,28 @@ public class PermiTrackDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Notification entity configuration
-        modelBuilder.Entity<Notification>(entity =>
+        // HttpAuditLog entity configuration
+        modelBuilder.Entity<HttpAuditLog>(entity =>
         {
-            entity.HasKey(n => n.Id);
-            entity.Property(n => n.Title).HasMaxLength(200).IsRequired();
-            entity.Property(n => n.Type).HasMaxLength(50).IsRequired();
+            entity.HasKey(h => h.Id);
+            entity.Property(h => h.Method).HasMaxLength(10).IsRequired();
+            entity.Property(h => h.Path).HasMaxLength(500).IsRequired();
+            entity.Property(h => h.QueryString).HasMaxLength(2000);
+            entity.Property(h => h.IpAddress).HasMaxLength(50).IsRequired();
+            entity.Property(h => h.UserAgent).HasMaxLength(500);
+            entity.Property(h => h.Username).HasMaxLength(100);
+            entity.Property(h => h.AdditionalInfo).HasMaxLength(2000);
 
-            entity.HasOne(n => n.User)
+            entity.HasOne(h => h.User)
                 .WithMany()
-                .HasForeignKey(n => n.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+                .HasForeignKey(h => h.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-        // Sessions entity configuration
-        modelBuilder.Entity<Sessions>(entity =>
-        {
-            entity.HasKey(s => s.Id);
-            entity.Property(s => s.TokenHash).HasMaxLength(500).IsRequired();
-            entity.Property(s => s.IpAddress).HasMaxLength(50);
-            entity.Property(s => s.UserAgent).HasMaxLength(500);
-
-            entity.HasOne(s => s.User)
-                .WithMany()
-                .HasForeignKey(s => s.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(s => s.TokenHash);
-            entity.HasIndex(s => new { s.UserId, s.IsActive });
+            // Indexes for better query performance
+            entity.HasIndex(h => h.Timestamp);
+            entity.HasIndex(h => h.UserId);
+            entity.HasIndex(h => h.StatusCode);
+            entity.HasIndex(h => new { h.Method, h.Path });
         });
     }
 }
