@@ -8,6 +8,8 @@ using PermiTrack.Services.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
+using PermiTrack.Authorization;
 
 
 namespace PermiTrack
@@ -60,7 +62,14 @@ namespace PermiTrack
                 };
             });
 
+            // Authorization Configuration with Permission-Based Policies
             builder.Services.AddAuthorization();
+            
+            // Register Permission Authorization Handler
+            builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+            
+            // Register Custom Policy Provider as Singleton
+            builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
             // Add controllers
             builder.Services.AddControllers();

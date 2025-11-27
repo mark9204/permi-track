@@ -99,7 +99,9 @@ public class AuthService : IAuthService
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(1),
-            User = _mapper.Map<UserDTO>(user)
+            User = _mapper.Map<UserDTO>(user),
+            Roles = roles,
+            Permissions = permissions
         };
     }
 
@@ -176,7 +178,9 @@ public class AuthService : IAuthService
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(1),
-            User = _mapper.Map<UserDTO>(user)
+            User = _mapper.Map<UserDTO>(user),
+            Roles = roles,
+            Permissions = permissions
         };
     }
 
@@ -211,7 +215,9 @@ public class AuthService : IAuthService
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddHours(1),
-            User = _mapper.Map<UserDTO>(user)
+            User = _mapper.Map<UserDTO>(user),
+            Roles = roles,
+            Permissions = permissions
         };
     }
 
