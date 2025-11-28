@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,7 +33,7 @@ public class RoleExpirationJob : BackgroundService
         // SPEC 12: Check interval configuration
         // Production: 1 hour (TimeSpan.FromHours(1))
         // Testing: 1 minute (TimeSpan.FromMinutes(1))
-        _checkInterval = TimeSpan.FromHours(1);  // ? Change to TimeSpan.FromMinutes(1) for testing
+        _checkInterval = TimeSpan.FromHours(1);  // ← Change to TimeSpan.FromMinutes(1) for testing
     }
 
     /// <summary>
@@ -132,7 +132,7 @@ public class RoleExpirationJob : BackgroundService
                     {
                         await notificationService.SendNotificationAsync(
                             userId: userRole.UserId,
-                            title: "Role Access Expired ?",
+                            title: "Role Access Expired ⏰",
                             message: $"Your access to the '{userRole.Role.Name}' role has expired and has been automatically deactivated.",
                             type: NotificationType.Warning,
                             relatedResourceType: "UserRole",
