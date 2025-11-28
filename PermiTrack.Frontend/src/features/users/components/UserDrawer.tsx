@@ -1,0 +1,144 @@
+import { useEffect } from 'react';
+import { Drawer, Form, Input, Button, Select, message, Space } from 'antd';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { userService } from '../services/userService';
+import type { CreateUserRequest, UpdateUserRequest } from '../services/userService';
+import type { User } from '../../../types/auth.types';
+
+interface UserDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  userToEdit: User | null;
+}
+
+const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
+  const [form] = Form.useForm();
+  const queryClient = useQueryClient();
+  const isEditMode = !!userToEdit;
+
+  useEffect(() => {
+    if (open) {
+      if (userToEdit) {
+        form.setFieldsValue({
+          ...userToEdit,
+          roleIds: [], // TODO: Map roles to IDs if available in user object, or fetch separately
+        });
+      } else {
+        form.resetFields();
+      }
+    }
+  }, [open, userToEdit, form]);
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateUserRequest) => userService.createUser(data),
+    onSuccess: () => {
+      message.success('User created successfully');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      onClose();
+    },
+    onError: () => {
+      message.error('Failed to create user');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: UpdateUserRequest) => userService.updateUser(userToEdit!.id, data),
+    onSuccess: () => {
+      message.success('User updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      onClose();
+    },
+    onError: () => {
+      message.error('Failed to update user');
+    },
+  });
+
+  const onFinish = (values: any) => {
+    if (isEditMode) {
+      updateMutation.mutate(values);
+    } else {
+      createMutation.mutate(values);
+    }
+  };
+
+  const isLoading = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <Drawer
+      title={isEditMode ? 'Edit User' : 'Create User'}
+      width={500}
+      onClose={onClose}
+      open={open}
+      extra={
+        <Space>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={() => form.submit()} type="primary" loading={isLoading}>
+            Submit
+          </Button>
+        </Space>
+      }
+    >
+      <Form layout="vertical" form={form} onFinish={onFinish}>
+        <Form.Item
+          name="username"
+          label="Username"
+          rules={[{ required: true, message: 'Please enter username' }]}
+        >
+          <Input placeholder="jdoe" />
+        </Form.Item>
+
+        <Form.Item
+          name="email"
+          label="Email"
+          rules={[{ required: true, type: 'email', message: 'Please enter a valid email' }]}
+        >
+          <Input placeholder="jdoe@example.com" />
+        </Form.Item>
+
+        <Form.Item
+          name="firstName"
+          label="First Name"
+          rules={[{ required: true, message: 'Please enter first name' }]}
+        >
+          <Input placeholder="John" />
+        </Form.Item>
+
+        <Form.Item
+          name="lastName"
+          label="Last Name"
+          rules={[{ required: true, message: 'Please enter last name' }]}
+        >
+          <Input placeholder="Doe" />
+        </Form.Item>
+
+        {!isEditMode && (
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: 'Please enter password' }]}
+          >
+            <Input.Password placeholder="Password" />
+          </Form.Item>
+        )}
+
+        <Form.Item
+          name="roleIds"
+          label="Roles"
+          rules={[{ required: true, message: 'Please select at least one role' }]}
+        >
+          <Select
+            mode="multiple"
+            placeholder="Select roles"
+            options={[
+              { label: 'Admin', value: 1 },
+              { label: 'User', value: 2 },
+              { label: 'Manager', value: 3 },
+            ]}
+          />
+        </Form.Item>
+      </Form>
+    </Drawer>
+  );
+};
+
+export default UserDrawer;
