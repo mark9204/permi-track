@@ -24,7 +24,7 @@ PermiTrack is a learning-focused implementation of an enterprise-grade permissio
 ## ✨ Key Features
 
 ### 🔐 Authentication & User Management
-- Multi-channel authentication (OAuth2, JWT, ASP.NET Identity)
+- Multi-channel authentication (JWT, ASP.NET Identity)
 - Role-based access control (RBAC): Administrator, User, Guest
 - Two-factor authentication (2FA)
 - Password recovery and email verification
