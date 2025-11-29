@@ -147,6 +147,10 @@ public class PermiTrackDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict) // Important: No cascade delete
                 .IsRequired(false);
 
+            modelBuilder.Entity<AccessRequest>()
+            .Property(r => r.Status)
+            .HasConversion<string>(); 
+
             // RejectedBy - Restrict to avoid multiple cascade paths
             entity.HasOne(ar => ar.RejectedByUser)
                 .WithMany()

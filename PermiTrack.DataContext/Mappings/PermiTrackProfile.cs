@@ -30,13 +30,21 @@ namespace PermiTrack.DataContext.Mappings
 
             // AccessRequests
             CreateMap<AccessRequest, AccessRequestDTO>()
+                 .ForMember(dest => dest.RequesterName, opt => opt.MapFrom(src => src.User.Username))
+                 .ForMember(dest => dest.RequestedRoleName, opt => opt.MapFrom(src => src.RequestedRole.Name));
+
+            // 2. DTO -> ENTITY (Mentéshez/Frissítéshez)
+            CreateMap<AccessRequestDTO, AccessRequest>()
                 .ForMember(d => d.Status, o => o.MapFrom(s => s.Status));
+
+            // 3. SUBMIT DTO -> ENTITY (Új létrehozásához)
+            CreateMap<SubmitAccessRequestDTO, AccessRequest>();
 
             CreateMap<AccessRequestDTO, AccessRequest>()
                 .ForMember(d => d.Status, o => o.MapFrom(s => s.Status))
                 .ForMember(d => d.RequestedPermissions, o => o.Condition(s => s.RequestedPermissions != null));
 
-
+           
 
 
         }

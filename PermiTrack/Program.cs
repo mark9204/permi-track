@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using PermiTrack.DataContext;
 using AutoMapper;
 using PermiTrack.DataContext.Mappings;
@@ -12,7 +14,8 @@ using Microsoft.AspNetCore.Authorization;
 using PermiTrack.Authorization;
 using PermiTrack.Extensions;
 using PermiTrack.BackgroundJobs;
-
+using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace PermiTrack
 {
@@ -24,7 +27,17 @@ namespace PermiTrack
 
             // DbContext Configuration with Factory for Audit Service
             var connectionString = builder.Configuration.GetConnectionString("PermiTrackContextDocker");
-            
+
+            // If running in Development, prevent a single BackgroundService failure from stopping the host.
+            // This makes debugging database/migration issues easier while developing.
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Host.ConfigureServices((context, services) =>
+                {
+                    services.Configure<HostOptions>(o =>
+                        o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+                });
+            }
 
             // Add DbContext Factory for Audit Service (to avoid DbContext lifetime conflicts)
             // Register with a lambda that creates options inline to avoid singleton/scoped conflict
@@ -95,30 +108,68 @@ namespace PermiTrack
             builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
             // Add controllers
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // 1. Körkörös hivatkozások figyelmen kívül hagyása
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+
+        //  2. ENUMOK SZÖVEGKÉNT (0 helyett "Pending")
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
             // Frontend CORS policy - allow requests from frontend
+            // Frontend CORS policy
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://localhost:3000")
+                    policy.WithOrigins("http://localhost:5173") //  PONTOSAN EZ KELL (Vite port)
                           .AllowAnyHeader()
-                          .AllowAnyMethod();
+                          .AllowAnyMethod()
+                          .AllowCredentials(); // Ez kell, ha sütiket vagy hitelesítést használsz
                 });
             });
-            
+
             // Swagger/OpenAPI configuration for API documentation
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
+            // Apply pending EF Core migrations at startup (non-fatal; logged). Uses the registered DbContextFactory.
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+                var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<PermiTrackDbContext>>();
+                try
+                {
+                    using var db = factory.CreateDbContext();
+                    db.Database.Migrate();
+                    logger.LogInformation("Database migrations applied successfully at startup.");
+                }
+                catch (Exception ex)
+                {
+                    // Log but do not rethrow — in Development host will remain up due to HostOptions configuration above.
+                    logger.LogError(ex, "Failed to apply database migrations at startup.");
+                }
+            }
+            catch
+            {
+                // Swallow any scope/DI resolution failures here to avoid hard crash during startup logging.
+            }
+
             // Configure the HTTP request pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
+                app.UseSwaggerUI(c =>
+                {
+                    // Ensure UI points to the generated JSON endpoint
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PermiTrack API v1");
+
+                });
             }
 
             app.UseHttpsRedirection();

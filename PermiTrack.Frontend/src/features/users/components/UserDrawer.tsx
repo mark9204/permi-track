@@ -1,8 +1,10 @@
+import type { Role } from '../../roles/services/roleService';
 import { useEffect } from 'react';
 import { Drawer, Form, Input, Button, Select, message, Space } from 'antd';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { userService } from '../services/userService';
 import type { CreateUserRequest, UpdateUserRequest } from '../services/userService';
+import roleService from '../../roles/services/roleService';
 import type { User } from '../../../types/auth.types';
 
 interface UserDrawerProps {
@@ -15,6 +17,11 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const isEditMode = !!userToEdit;
+
+  const { data: roles = [], isLoading: isRolesLoading } = useQuery<Role[]>({
+    queryKey: ['roles'],
+    queryFn: roleService.getAllRoles,
+  });
 
   useEffect(() => {
     if (open) {
@@ -66,7 +73,7 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
   return (
     <Drawer
       title={isEditMode ? 'Edit User' : 'Create User'}
-      width={500}
+      size={500}
       onClose={onClose}
       open={open}
       extra={
@@ -129,11 +136,8 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
           <Select
             mode="multiple"
             placeholder="Select roles"
-            options={[
-              { label: 'Admin', value: 1 },
-              { label: 'User', value: 2 },
-              { label: 'Manager', value: 3 },
-            ]}
+            options={roles.map((r: any) => ({ label: r.name, value: r.id }))}
+            loading={isRolesLoading}
           />
         </Form.Item>
       </Form>

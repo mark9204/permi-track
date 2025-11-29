@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import type { LoginRequest, LoginResponse, User } from '../types/auth.types';
+import type { LoginRequest, LoginResponse, User, RegisterRequest } from '../types/auth.types';
 
 const login = (data: LoginRequest): Promise<LoginResponse> => {
   return apiClient.post('/auth/login', data).then(res => {
@@ -17,6 +17,25 @@ const refreshToken = (): Promise<{ accessToken: string }> => {
   return apiClient.post('/auth/refresh', { refreshToken }).then(res => res.data);
 };
 
+const register = (data: RegisterRequest): Promise<void> => {
+  return apiClient.post('/auth/register', data)
+    .then(() => {
+      return;
+    })
+    .catch((err: any) => {
+      console.error('authService.register failed', {
+        url: '/auth/register',
+        payload: data,
+        status: err?.response?.status,
+        responseData: err?.response?.data,
+        message: err?.message,
+      });
+
+      const serverMsg = err?.response?.data?.message || err?.response?.data || err?.message;
+      throw new Error(`Registration failed: ${serverMsg} (status: ${err?.response?.status})`);
+    });
+};
+
 const getCurrentUser = (): Promise<User> => {
   return apiClient.get('/account/profile').then(res => res.data);
 };
@@ -32,4 +51,5 @@ export const authService = {
   logout,
   refreshToken,
   getCurrentUser,
+  register,
 };

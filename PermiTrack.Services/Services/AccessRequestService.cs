@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PermiTrack.DataContext;
@@ -29,60 +30,61 @@ public class AccessRequestService : IAccessRequestService
 
     public async Task<AccessRequestDTO> SubmitRequestAsync(long userId, SubmitAccessRequestDTO request)
     {
-        // Validate user exists
+        // 1. Validációk (User, Role, Duplikáció)
         var user = await _context.Users.FindAsync(userId);
-        if (user == null)
-        {
-            throw new InvalidOperationException("User not found");
-        }
+        if (user == null) throw new InvalidOperationException("User not found");
 
-        // Validate role exists
         var role = await _context.Roles.FindAsync(request.RequestedRoleId);
-        if (role == null)
+        if (role == null) throw new InvalidOperationException("Requested role not found");
+
+        var existingRequest = await _context.AccessRequests
+            .AnyAsync(r => r.UserId == userId && r.RequestedRoleId == request.RequestedRoleId && r.Status == RequestStatus.Pending);
+        if (existingRequest) throw new InvalidOperationException("Pending request already exists");
+
+        var hasRole = await _context.UserRoles.AnyAsync(ur => ur.UserId == userId && ur.RoleId == request.RequestedRoleId && ur.IsActive);
+        if (hasRole) throw new InvalidOperationException("User already has this role");
+
+        // 2. WORKFLOW KEZELÉS (A 500-as hiba elhárítása)
+        // Megnézzük, van-e bármilyen workflow. Ha nincs, létrehozunk egy alapértelmezettet.
+        var workflow = await _context.ApprovalWorkflows.FirstOrDefaultAsync();
+
+        if (workflow == null)
         {
-            throw new InvalidOperationException("Requested role not found");
+            workflow = new ApprovalWorkflow
+            {
+                Name = "Default Workflow",
+                Description = "Auto-generated system workflow",
+                MinUserLevel = 0,
+                MaxUserLevel = 100,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.ApprovalWorkflows.Add(workflow);
+            await _context.SaveChangesAsync(); // Elmentjük, hogy kapjon ID-t
         }
 
-        // Check if user already has this role
-        var existingUserRole = await _context.UserRoles
-            .AnyAsync(ur => ur.UserId == userId && ur.RoleId == request.RequestedRoleId && ur.IsActive);
-
-        if (existingUserRole)
-        {
-            throw new InvalidOperationException("User already has this role");
-        }
-
-        // Check if there's already a pending request for this role
-        var pendingRequest = await _context.AccessRequests
-            .AnyAsync(ar => ar.UserId == userId && 
-                           ar.RequestedRoleId == request.RequestedRoleId && 
-                           ar.Status == RequestStatus.Pending);
-
-        if (pendingRequest)
-        {
-            throw new InvalidOperationException("A pending request for this role already exists");
-        }
-
-        // Create new access request
-        var accessRequest = new AccessRequest
+        // 3. Mentés
+        var newRequest = new AccessRequest
         {
             UserId = userId,
             RequestedRoleId = request.RequestedRoleId,
             Reason = request.Reason,
-            RequestedPermissions = request.RequestedPermissions ?? string.Empty,
-            RequestedDurationHours = request.RequestedDurationHours,
             Status = RequestStatus.Pending,
-            RequestedAt = DateTime.UtcNow
+            RequestedAt = DateTime.UtcNow,
+            RequestedPermissions = "[]",
+            WorkflowId = workflow.Id //  Most már biztosan létezõ ID!
         };
 
-        _context.AccessRequests.Add(accessRequest);
+        _context.AccessRequests.Add(newRequest);
         await _context.SaveChangesAsync();
 
-        _logger.LogInformation(
-            "Access request {RequestId} submitted by user {UserId} for role {RoleId}",
-            accessRequest.Id, userId, request.RequestedRoleId);
+        // 4. Adatok visszatöltése a DTO-hoz (Hogy ne legyen NullReference)
+        await _context.Entry(newRequest).Reference(r => r.User).LoadAsync();
+        await _context.Entry(newRequest).Reference(r => r.RequestedRole).LoadAsync();
 
-        return await MapToDTO(accessRequest);
+        // 5. Mapping (A te módszereddel)
+        return await MapToDTO(newRequest);
     }
 
     public async Task<AccessRequestDTO> ApproveRequestAsync(

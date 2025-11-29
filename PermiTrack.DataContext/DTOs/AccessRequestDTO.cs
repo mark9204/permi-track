@@ -13,6 +13,9 @@ namespace PermiTrack.DataContext.DTOs
     /// </summary>
     public class AccessRequestDTO
     {
+
+        public string RequesterName { get; set; }
+       
         public long Id { get; set; }
         public long UserId { get; set; }
         public string Username { get; set; } = string.Empty;

@@ -34,6 +34,9 @@ const LoginPage = () => {
       <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         <Card title="Login" style={{ width: 400 }}>
           <LoginForm isLoading={isLoading} onSubmit={handleLogin} />
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <a href="/register">Don't have an account? Register</a>
+          </div>
         </Card>
       </Content>
     </Layout>
