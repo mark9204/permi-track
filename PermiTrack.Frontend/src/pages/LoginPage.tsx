@@ -5,12 +5,14 @@ import LoginForm from '../features/auth/components/LoginForm';
 import { authService } from '../services/authService';
 import type { LoginRequest } from '../types/auth.types';
 import type { ApiError } from '../types/api.types';
+import { useAuthStore } from '../stores/authStore';
 
 const { Content } = Layout;
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const handleLogin = async (values: LoginRequest) => {
     setIsLoading(true);
@@ -18,7 +20,11 @@ const LoginPage = () => {
       const response = await authService.login(values);
       localStorage.setItem('accessToken', response.accessToken);
       localStorage.setItem('refreshToken', response.refreshToken);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      // Ensure roles returned separately are included on the stored user object
+      const userToStore = { ...response.user, roles: response.roles ?? response.user.roles };
+      localStorage.setItem('user', JSON.stringify(userToStore));
+      // Update the zustand auth store so components react immediately
+      setUser(userToStore);
       message.success('Login successful!');
       navigate('/', { replace: true });
     } catch (error) {

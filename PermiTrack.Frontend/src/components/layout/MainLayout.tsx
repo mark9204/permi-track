@@ -8,6 +8,7 @@ import {
   SafetyCertificateOutlined,
   KeyOutlined,
   AuditOutlined,
+  SecurityScanOutlined,
   LogoutOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
@@ -40,37 +41,65 @@ const MainLayout: React.FC = () => {
     },
   ];
 
-  // ✅ MINDEN MENÜPONT MINDENKINEK (Nincs isAdmin ellenőrzés)
-  const menuItems: MenuProps['items'] = [
+  // Determine admin role robustly
+  const rawRoles = user?.roles ?? [];
+  const normalizedRoles: string[] = Array.isArray(rawRoles)
+    ? rawRoles
+        .map((r: any) => {
+          if (!r) return '';
+          if (typeof r === 'string') return r;
+          return r.name || r.roleName || r.role || r.title || '';
+        })
+        .filter(Boolean)
+    : [];
+
+  const isAdmin = normalizedRoles.some((x) => String(x).toLowerCase() === 'admin');
+
+  // DEBUG: Check why admin menu isn't showing
+  console.log('MainLayout Debug:', { user, rawRoles, normalizedRoles, isAdmin });
+
+  const menuItemsBase: MenuProps['items'] = [
     {
-      key: '/',
+      key: '/dashboard',
       icon: <DashboardOutlined />,
-      label: <Link to="/">Dashboard</Link>,
+      label: <Link to="/dashboard">Dashboard</Link>,
     },
     {
       key: '/my-access',
       icon: <KeyOutlined />,
       label: <Link to="/my-access">My Access</Link>,
     },
-    {
+  ];
+
+  if (isAdmin) {
+    menuItemsBase.push({
       key: '/approvals',
       icon: <AuditOutlined />,
       label: <Link to="/approvals">Approvals</Link>,
-    },
-    {
-      type: 'divider',
-    },
-    {
+    });
+    
+    menuItemsBase.push({
+      key: '/audit-logs',
+      icon: <SecurityScanOutlined />,
+      label: <Link to="/audit-logs">Audit Logs</Link>,
+    });
+
+    menuItemsBase.push({ type: 'divider' });
+    
+    menuItemsBase.push({
       key: '/users',
       icon: <UserOutlined />,
       label: <Link to="/users">Users</Link>,
-    },
-    {
+    });
+    
+    menuItemsBase.push({
       key: '/roles',
       icon: <SafetyCertificateOutlined />,
       label: <Link to="/roles">Roles</Link>,
-    },
-  ];
+    });
+  }
+
+  const menuItems: MenuProps['items'] = menuItemsBase;
 
   return (
     <Layout style={{ minHeight: '100vh' }}>

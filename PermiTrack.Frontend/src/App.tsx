@@ -1,9 +1,11 @@
 import React from 'react';
 
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import DashboardPage from './features/dashboard/pages/DashboardPage';
+import AuditLogPage from './features/audit/pages/AuditLogPage';
 
 import MainLayout from './components/layout/MainLayout';
 
@@ -31,9 +33,11 @@ const App: React.FC = () => {
 
       <Route path="/" element={<MainLayout />}>
 
-        <Route index element={<div>Dashboard Statisztikák (Hamarosan)</div>} />
-
-        <Route path="users" element={<UserListPage />} />
+        
+  <Route index element={<Navigate to="/dashboard" replace />} />
+  <Route path="dashboard" element={<DashboardPage />} />
+  <Route path="users" element={<UserListPage />} />
+  <Route path="audit-logs" element={<AuditLogPage />} />
 
         <Route path="roles" element={<div>Role Kezelés (Hamarosan)</div>} />
 

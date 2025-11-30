@@ -73,7 +73,7 @@ public class UserManagementService : IUserManagementService
             _db.Users.Add(user);
             await _db.SaveChangesAsync(); // Itt kap ID-t a User
 
-            // 4.  JAVÍTÁS: Alapértelmezett 'User' szerepkör hozzáadása
+            // 4.   JAVÍTÁS: Alapértelmezett 'User' szerepkör hozzáadása
             // Így nem lesz "árva" a felhasználó
             var defaultRole = await _db.Roles.FirstOrDefaultAsync(r => r.Name == "User");
             if (defaultRole != null)
