@@ -1,18 +1,23 @@
 import apiClient from '../../../services/apiClient';
 
 export interface Role {
-  id: string | number;
+  id: number;
   name: string;
-  description?: string | null;
+  description: string;
+  userCount?: number;
+}
+
+export interface CreateRoleRequest {
+  name: string;
+  description: string;
 }
 
 const roleService = {
   async getAllRoles(): Promise<Role[]> {
-    // Try to fetch up to 100 roles; adjust endpoint/query params as needed by backend
+    
     const res = await apiClient.get('/roles', { params: { limit: 100 } });
 
-    // If the backend returns a paginated response like { data: [...], meta: {...} }
-    // try to extract the list; otherwise assume the array is returned directly.
+    
     if (res && Array.isArray(res.data)) {
       return res.data as Role[];
     }
@@ -23,6 +28,20 @@ const roleService = {
 
     // Fallback: return empty array
     return [];
+  },
+
+  async createRole(data: CreateRoleRequest): Promise<Role> {
+    const res = await apiClient.post('/roles', data);
+    return res.data;
+  },
+
+  async updateRole(id: number, data: CreateRoleRequest): Promise<Role> {
+    const res = await apiClient.put(`/roles/${id}`, data);
+    return res.data;
+  },
+
+  async deleteRole(id: number): Promise<void> {
+    await apiClient.delete(`/roles/${id}`);
   },
 };
 

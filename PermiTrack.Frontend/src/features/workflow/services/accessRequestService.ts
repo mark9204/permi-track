@@ -19,6 +19,12 @@ const accessRequestService = {
     return extractArray(res) as AccessRequest[];
   },
 
+  async getAllRequests(): Promise<AccessRequest[]> {
+    // Calls the endpoint that returns all requests (filtering can be added later)
+    const res = await apiClient.get('/access-requests');
+    return extractArray(res) as AccessRequest[];
+  },
+
   async submitRequest(payload: SubmitRequestPayload): Promise<AccessRequest> {
     const body = {
       requestedRoleId: payload.roleId,

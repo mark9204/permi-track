@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Statistic, Row, Col, List, Spin, Alert, Typography } from 'antd';
-import { FileOutlined, ClockCircleOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Card, Statistic, Row, Col, List, Spin, Alert, Typography, Tag, Space } from 'antd';
+import { FileOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import dashboardService from '../services/dashboardService';
 import type { DashboardStats } from '../services/dashboardService';
 import { useAuthStore } from '../../../stores/authStore';
@@ -11,7 +11,17 @@ const { Title, Text } = Typography;
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
 
-  const { data, isLoading, isError, error } = useQuery<DashboardStats, Error>({ queryKey: ['dashboard-stats'], queryFn: dashboardService.getStats });
+  // Determine if user is admin
+  const isAdmin = React.useMemo(() => {
+    if (!user?.roles) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
+    return roles.some((r: any) => String(r).toLowerCase() === 'admin');
+  }, [user]);
+
+  const { data, isLoading, isError, error } = useQuery<DashboardStats, Error>({
+    queryKey: ['dashboard-stats', isAdmin],
+    queryFn: () => dashboardService.getStats(isAdmin)
+  });
 
   if (isLoading) {
     return (
@@ -32,33 +42,39 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  const stats: DashboardStats =
-    data ?? {
-      total: 0,
-      pending: 0,
-      approved: 0,
-      rejected: 0,
-      cancelled: 0,
-      averageProcessingTimeHours: 0,
-      topRequestedRoles: [],
-    };
+  const stats: DashboardStats = data ?? {
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+    topRequestedRoles: [],
+    viewMode: 'Personal'
+  };
 
   return (
     <div>
       <Row style={{ marginBottom: 16 }}>
         <Col span={24}>
-          <Title level={3}>Welcome, {user?.firstName || user?.username || 'User'}!</Title>
-          <Text type="secondary">Quick overview of access request activity</Text>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <Title level={3} style={{ marginBottom: 0 }}>Welcome, {user?.firstName || user?.username || 'User'}!</Title>
+              <Text type="secondary">Quick overview of access request activity</Text>
+            </div>
+            <Tag color={stats.viewMode === 'Global' ? 'purple' : 'blue'} style={{ fontSize: '14px', padding: '4px 10px' }}>
+              {stats.viewMode} View
+            </Tag>
+          </div>
         </Col>
       </Row>
 
-      <Row gutter={16} style={{ marginTop: 16 }}>
-        <Col xs={24} sm={12} md={6}>
+      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <Col xs={24} sm={12} md={4}>
           <Card>
             <Statistic title="Total Requests" value={stats.total} prefix={<FileOutlined />} />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={5}>
           <Card>
             <Statistic
               title="Pending"
@@ -68,7 +84,7 @@ const DashboardPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={5}>
           <Card>
             <Statistic
               title="Approved"
@@ -78,13 +94,23 @@ const DashboardPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
+        <Col xs={24} sm={12} md={5}>
           <Card>
             <Statistic
               title="Rejected"
               value={stats.rejected}
               valueStyle={{ color: '#f5222d' }}
               prefix={<ExclamationCircleOutlined />}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={5}>
+          <Card>
+            <Statistic
+              title="Cancelled"
+              value={stats.cancelled}
+              valueStyle={{ color: '#8c8c8c' }}
+              prefix={<CloseCircleOutlined />}
             />
           </Card>
         </Col>
@@ -104,17 +130,6 @@ const DashboardPage: React.FC = () => {
                   />
                 </List.Item>
               )}
-            />
-          </Card>
-        </Col>
-
-        <Col xs={24} lg={8}>
-          <Card>
-            <Statistic
-              title="Avg Processing Time"
-              value={Number(stats.averageProcessingTimeHours.toFixed(2))}
-              suffix="hrs"
-              prefix={<ClockCircleOutlined />}
             />
           </Card>
         </Col>

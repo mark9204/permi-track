@@ -10,6 +10,7 @@ import AuditLogPage from './features/audit/pages/AuditLogPage';
 import MainLayout from './components/layout/MainLayout';
 
 import UserListPage from './features/users/pages/UserListPage';
+import RoleListPage from './features/roles/pages/RoleListPage';
 
 import MyRequestsPage from './features/workflow/pages/MyRequestsPage';
 import RequestApprovalPage from './features/workflow/pages/RequestApprovalPage';
@@ -39,7 +40,7 @@ const App: React.FC = () => {
   <Route path="users" element={<UserListPage />} />
   <Route path="audit-logs" element={<AuditLogPage />} />
 
-        <Route path="roles" element={<div>Role Kezelés (Hamarosan)</div>} />
+        <Route path="roles" element={<RoleListPage />} />
 
         <Route path="my-access" element={<MyRequestsPage />} />
         <Route path="approvals" element={<RequestApprovalPage />} />
