@@ -29,7 +29,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> 
       return (
         <div style={{ padding: 24 }}>
           <Alert
-            message="An unexpected error occurred"
+            title="An unexpected error occurred"
             description={this.state.error?.message || 'Unknown error'}
             type="error"
             showIcon

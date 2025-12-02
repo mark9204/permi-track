@@ -125,7 +125,7 @@ const AuditLogPage: React.FC = () => {
             <Spin />
           </div>
         ) : isError ? (
-          <Alert message="Failed to load audit logs" description={error?.message} type="error" showIcon />
+          <Alert title="Failed to load audit logs" description={error?.message} type="error" showIcon />
         ) : (
           <Table
             rowKey="id"

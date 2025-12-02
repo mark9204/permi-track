@@ -11,6 +11,13 @@ export interface RegisterRequest {
   lastName: string;
 }
 
+export interface Role {
+  id?: number;
+  name: string;
+  level?: number;
+  Level?: number;
+}
+
 export interface User {
   id: number;
   username: string;
@@ -18,7 +25,7 @@ export interface User {
   firstName: string;
   lastName: string;
   isActive: boolean;
-  roles?: string[];
+  roles?: (string | Role)[];
   createdAt: string;
   updatedAt: string;
 }
@@ -28,7 +35,7 @@ export interface LoginResponse {
   refreshToken: string;
   expiresAt: string;
   user: User;
-  roles: string[];
+  roles: (string | Role)[];
   permissions: string[];
 }
 

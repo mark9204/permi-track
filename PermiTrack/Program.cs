@@ -109,31 +109,66 @@ namespace PermiTrack
 
             // Add controllers
             builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // 1. Körkörös hivatkozások figyelmen kívül hagyása
-        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                .AddJsonOptions(options =>
+                {
+                    // 1. Circular reference handling
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 
-        //  2. ENUMOK SZÖVEGKÉNT (0 helyett "Pending")
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+                    // 2. Serialize enums as strings (e.g., "Pending" instead of 0)
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
 
-            // Frontend CORS policy - allow requests from frontend
-            // Frontend CORS policy
+            // CORS Configuration - FIXED to allow both localhost:5173 and 5174
             builder.Services.AddCors(options =>
             {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173") //  PONTOSAN EZ KELL (Vite port)
+                    policy.WithOrigins(
+                            "http://localhost:5173",  // Vite default port
+                            "http://localhost:5174",  // Alternate Vite port
+                            "https://localhost:5173", // HTTPS variants (if needed)
+                            "https://localhost:5174"
+                          )
                           .AllowAnyHeader()
                           .AllowAnyMethod()
-                          .AllowCredentials(); // Ez kell, ha sütiket vagy hitelesítést használsz
+                          .AllowCredentials(); // Required for JWT tokens in cookies/headers
                 });
             });
 
             // Swagger/OpenAPI configuration for API documentation
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "PermiTrack API", Version = "v1" });
+            
+                // Define the BearerAuth security scheme
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                    Name = "Authorization",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+            
+                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            },
+                            Scheme = "oauth2",
+                            Name = "Bearer",
+                            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                        },
+                        new List<string>()
+                    }
+                });
+            });
 
             var app = builder.Build();
 
@@ -151,7 +186,7 @@ namespace PermiTrack
                 }
                 catch (Exception ex)
                 {
-                    // Log but do not rethrow — in Development host will remain up due to HostOptions configuration above.
+                    // Log but do not rethrow – in Development host will remain up due to HostOptions configuration above.
                     logger.LogError(ex, "Failed to apply database migrations at startup.");
                 }
             }
@@ -168,16 +203,16 @@ namespace PermiTrack
                 {
                     // Ensure UI points to the generated JSON endpoint
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "PermiTrack API v1");
-
                 });
             }
 
             app.UseHttpsRedirection();
 
+            // CRITICAL: CORS must be placed BEFORE Authentication/Authorization
             app.UseCors();
 
-            // Authentication and Authorization MUST come before Audit Logging
-            // so that user context is available
+            // Authentication and Authorization MUST come after CORS
+            // but BEFORE Audit Logging so that user context is available
             app.UseAuthentication();
             app.UseAuthorization();
 

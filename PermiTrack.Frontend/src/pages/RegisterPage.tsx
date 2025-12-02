@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, Form, Input, Button, Row, Col, message, Layout, Typography } from 'antd';
 import { authService } from '../services/authService';
+import { useAuthStore } from '../stores/authStore';
 import type { RegisterRequest } from '../types/auth.types';
 
 const { Content } = Layout;
@@ -10,6 +11,7 @@ const { Text } = Typography;
 const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const setUser = useAuthStore((s) => s.setUser);
 
   const onFinish = async (values: any) => {
     const payload: RegisterRequest = {
@@ -23,10 +25,26 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
     try {
       await authService.register(payload);
-      message.success('Register Success');
-      navigate('/login', { replace: true });
+      message.success('Registration successful! Logging in...');
+      
+      // Auto-login after successful registration
+      const loginResponse = await authService.login({
+        username: values.username,
+        password: values.password,
+      });
+
+      // Store user data and update state
+      const userToStore = { 
+        ...loginResponse.user, 
+        roles: loginResponse.roles ?? loginResponse.user.roles 
+      };
+      localStorage.setItem('user', JSON.stringify(userToStore));
+      setUser(userToStore);
+
+      message.success('Login successful!');
+      navigate('/', { replace: true });
     } catch (err: any) {
-      console.error('Registration error', err);
+      console.error('Registration/Login error', err);
       // Prefer server-provided message or full response data if available
       const serverData = err?.response?.data;
       const serverMsg = err?.message || serverData?.message || (serverData ? JSON.stringify(serverData) : undefined);

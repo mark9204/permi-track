@@ -5,13 +5,13 @@ using PermiTrack.DataContext;
 namespace PermiTrack.Controllers;
 
 [ApiController]
-[Route("api/audit")]
+[Route("api/audit-logs")]
 public class AuditLogsController : ControllerBase
 {
     private readonly PermiTrackDbContext _db;
     public AuditLogsController(PermiTrackDbContext db) => _db = db;
 
-    // GET /api/audit?take=50
+    // GET /api/audit-logs?take=50
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int take = 50)
     {

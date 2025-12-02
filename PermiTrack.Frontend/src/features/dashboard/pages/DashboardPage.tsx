@@ -34,7 +34,7 @@ const DashboardPage: React.FC = () => {
   if (isError) {
     return (
       <Alert
-        message="Failed to load dashboard"
+        title="Failed to load dashboard"
         description={(error as any)?.message || 'An error occurred while fetching statistics.'}
         type="error"
         showIcon

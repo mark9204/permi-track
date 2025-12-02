@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Layout, Menu, Avatar, Dropdown, theme } from 'antd';
 import type { MenuProps } from 'antd';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
@@ -19,9 +19,16 @@ const { Header, Content, Footer, Sider } = Layout;
 // import ErrorBoundary from '../ErrorBoundary'; 
 
 const MainLayout: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAuthenticated } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+
   
   const {
     token: { colorBgContainer },
@@ -41,22 +48,34 @@ const MainLayout: React.FC = () => {
     },
   ];
 
-  // Determine admin role robustly
+  // Determine admin role robustly based on Level >= 2
   const rawRoles = user?.roles ?? [];
-  const normalizedRoles: string[] = Array.isArray(rawRoles)
-    ? rawRoles
-        .map((r: any) => {
-          if (!r) return '';
-          if (typeof r === 'string') return r;
-          return r.name || r.roleName || r.role || r.title || '';
-        })
-        .filter(Boolean)
-    : [];
+  
+  const isAdmin = Array.isArray(rawRoles) && rawRoles.some((r: any) => {
+    if (!r) return false;
+    
+    // Check if role is an object
+    if (typeof r === 'object') {
+      // 1. Check Level (handles number or string "2")
+      const level = r.Level ?? r.level;
+      if (level !== undefined && level !== null) {
+        const parsed = Number(level);
+        if (!isNaN(parsed) && parsed >= 2) return true;
+      }
 
-  const isAdmin = normalizedRoles.some((x) => String(x).toLowerCase() === 'admin');
+      // 2. Fallback: Check name for 'admin' inside object (in case Level is missing)
+      const name = r.name || r.roleName || r.role || '';
+      const lowerName = String(name).toLowerCase();
+      return lowerName === 'admin' || lowerName === 'superadmin';
+    }
 
-  // DEBUG: Check why admin menu isn't showing
-  console.log('MainLayout Debug:', { user, rawRoles, normalizedRoles, isAdmin });
+    // Fallback for string roles
+    if (typeof r === 'string') {
+      const lower = r.toLowerCase();
+      return lower === 'admin' || lower === 'superadmin';
+    }
+    return false;
+  });
 
   const menuItemsBase: MenuProps['items'] = [
     {
