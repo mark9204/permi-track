@@ -29,6 +29,7 @@ export interface User {
   roles?: (string | Role)[];
   createdAt: string;
   updatedAt: string;
+  lastLogin?: string;
 }
 
 export interface UpdateProfileRequest {

@@ -143,6 +143,12 @@ const MainLayout: React.FC = () => {
       icon: <LockOutlined />,
       label: <Link to="/permissions">Permissions</Link>,
     });
+
+    menuItemsBase.push({
+      key: '/certifications',
+      icon: <SafetyCertificateOutlined />,
+      label: <Link to="/certifications">Access Reviews</Link>,
+    });
   }
     
   if (isSuperAdmin) {

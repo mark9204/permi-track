@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { Table, Tag, Space, Button, Input, Avatar, Badge, Card, Row, Col } from 'antd';
-import { EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, PlusOutlined } from '@ant-design/icons';
+import { Table, Tag, Space, Button, Input, Avatar, Card, Row, Col, message, Popconfirm } from 'antd';
+import { EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, PlusOutlined, KeyOutlined } from '@ant-design/icons';
 import { userService } from '../services/userService';
 import UserDrawer from '../components/UserDrawer';
 import { useUserPermissions } from '../../../hooks/useUserPermissions';
@@ -85,11 +85,23 @@ const UserListPage = () => {
       ),
     },
     {
+      title: 'Last Login',
+      dataIndex: 'lastLogin',
+      key: 'lastLogin',
+      render: (date: string) => (
+        <span style={{ color: '#666' }}>
+          {date ? new Date(date).toLocaleString() : 'Never'}
+        </span>
+      ),
+    },
+    {
       title: 'Status',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive: boolean) => (
-        <Badge status={isActive ? 'success' : 'error'} text={isActive ? 'Active' : 'Inactive'} />
+        <Tag color={isActive ? 'success' : 'error'}>
+          {isActive ? 'ACTIVE' : 'INACTIVE'}
+        </Tag>
       ),
     },
     {
@@ -102,10 +114,22 @@ const UserListPage = () => {
             onClick={() => handleEdit(record)} 
           />
           <Button 
-            danger 
-            icon={<DeleteOutlined />} 
-            onClick={() => console.log('Delete', record.id)} 
+            icon={<KeyOutlined />} 
+            title="Reset Password"
+            onClick={() => message.success(`Password reset email sent to ${record.email}`)} 
           />
+          <Popconfirm
+            title="Delete user"
+            description="Are you sure you want to delete this user?"
+            onConfirm={() => message.success('User deleted successfully')}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button 
+              danger 
+              icon={<DeleteOutlined />} 
+            />
+          </Popconfirm>
         </Space>
       ),
     },

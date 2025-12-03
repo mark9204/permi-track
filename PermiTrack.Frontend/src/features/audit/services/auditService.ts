@@ -24,6 +24,7 @@ export interface AuditLogQueryParams {
   action?: string;
   dateFrom?: string;
   dateTo?: string;
+  riskLevel?: string;
 }
 
 // --- DEMO STATE ---
@@ -69,6 +70,10 @@ export const auditLogService = {
     // Simple filtering simulation
     if (params.action) {
       filtered = filtered.filter(l => l.action.toLowerCase().includes(params.action!.toLowerCase()));
+    }
+    
+    if (params.riskLevel) {
+      filtered = filtered.filter(l => l.riskScore === params.riskLevel);
     }
 
     const page = params.page || 1;

@@ -17,6 +17,8 @@ import SystemConfigPage from './features/admin/pages/SystemConfigPage';
 
 import MyRequestsPage from './features/workflow/pages/MyRequestsPage';
 import RequestApprovalPage from './features/workflow/pages/RequestApprovalPage';
+import CertificationListPage from './features/certification/pages/CertificationListPage';
+import CertificationReviewPage from './features/certification/pages/CertificationReviewPage';
 
 
 
@@ -50,6 +52,8 @@ const App: React.FC = () => {
 
         <Route path="my-access" element={<MyRequestsPage />} />
         <Route path="approvals" element={<RequestApprovalPage />} />
+        <Route path="certifications" element={<CertificationListPage />} />
+        <Route path="certifications/:id" element={<CertificationReviewPage />} />
 
       </Route>
 

@@ -38,7 +38,8 @@ let mockUsers: User[] = [
     roles: ['Admin'], 
     department: 'IT',
     createdAt: '2025-01-01T00:00:00Z',
-    updatedAt: '2025-01-01T00:00:00Z'
+    updatedAt: '2025-01-01T00:00:00Z',
+    lastLogin: new Date(Date.now() - 1000 * 60 * 15).toISOString() // 15 mins ago
   },
   { 
     id: 2, 
@@ -50,7 +51,8 @@ let mockUsers: User[] = [
     roles: ['User'], 
     department: 'HR',
     createdAt: '2025-01-02T00:00:00Z',
-    updatedAt: '2025-01-02T00:00:00Z'
+    updatedAt: '2025-01-02T00:00:00Z',
+    lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() // 2 days ago
   },
   { 
     id: 3, 
@@ -58,11 +60,12 @@ let mockUsers: User[] = [
     email: 'asmith@company.com', 
     firstName: 'Alice', 
     lastName: 'Smith', 
-    isActive: true, 
+    isActive: false, 
     roles: ['Manager'], 
     department: 'Finance',
     createdAt: '2025-01-03T00:00:00Z',
-    updatedAt: '2025-01-03T00:00:00Z'
+    updatedAt: '2025-01-03T00:00:00Z',
+    lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString() // 30 days ago
   },
 ];
 

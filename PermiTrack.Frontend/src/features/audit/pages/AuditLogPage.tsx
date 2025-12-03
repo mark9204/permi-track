@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Table, Card, Tag, Typography, Button, Modal, Descriptions, DatePicker, Space, Alert, Row, Col, Statistic } from 'antd';
+import { Table, Card, Tag, Typography, Button, Modal, Descriptions, DatePicker, Space, Alert, Row, Col, Statistic, Select } from 'antd';
 import { EyeOutlined, SafetyCertificateOutlined, WarningOutlined, GlobalOutlined } from '@ant-design/icons';
 import auditLogService from '../services/auditService';
 import type { AuditLog } from '../services/auditService';
@@ -24,13 +24,14 @@ const AuditLogPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(10);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [dateRange, setDateRange] = useState<any>(null);
+  const [riskFilter, setRiskFilter] = useState<string | undefined>(undefined);
 
   const dateFrom = dateRange?.[0]?.toISOString?.() ?? undefined;
   const dateTo = dateRange?.[1]?.toISOString?.() ?? undefined;
 
   const { data, isLoading, isError, error } = useQuery<PaginatedResponse<AuditLog>, Error>({
-    queryKey: ['audit-logs', page, pageSize, dateFrom, dateTo],
-    queryFn: () => auditLogService.getLogs({ page, pageSize, dateFrom, dateTo })
+    queryKey: ['audit-logs', page, pageSize, dateFrom, dateTo, riskFilter],
+    queryFn: () => auditLogService.getLogs({ page, pageSize, dateFrom, dateTo, riskLevel: riskFilter })
   });
 
   const tableData = Array.isArray(data?.data) ? data.data : [];
@@ -153,7 +154,23 @@ const AuditLogPage: React.FC = () => {
 
       <Card 
         title="Audit Logs & Behavior Monitoring" 
-        extra={<RangePicker onChange={(dates) => setDateRange(dates)} />}
+        extra={
+          <Space>
+            <Select
+              placeholder="Filter by Risk"
+              style={{ width: 150 }}
+              allowClear
+              onChange={(val) => setRiskFilter(val)}
+              options={[
+                { label: 'Low Risk', value: 'Low' },
+                { label: 'Medium Risk', value: 'Medium' },
+                { label: 'High Risk', value: 'High' },
+                { label: 'Critical Risk', value: 'Critical' },
+              ]}
+            />
+            <RangePicker onChange={(dates) => setDateRange(dates)} />
+          </Space>
+        }
       >
         {isError && (
           <Alert

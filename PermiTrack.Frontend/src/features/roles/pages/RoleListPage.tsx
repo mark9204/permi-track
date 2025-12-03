@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography, Tag, Select, Checkbox, Divider } from 'antd';
+import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography, Select, Checkbox, Divider } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import roleService from '../services/roleService';
@@ -229,7 +229,7 @@ const RoleListPage: React.FC = () => {
 
           {selectedDepartmentName && filteredSystems.length > 0 && (
             <>
-              <Divider orientation="left">Permissions</Divider>
+              <Divider>Permissions</Divider>
               {filteredSystems.map(sys => {
                 const sysActions = actions.filter(a => a.targetSystemId === sys.id);
                 if (sysActions.length === 0) return null;

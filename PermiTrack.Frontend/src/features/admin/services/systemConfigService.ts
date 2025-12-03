@@ -1,4 +1,3 @@
-import apiClient from '../../../services/apiClient';
 
 export interface SystemConfigOption {
   id: number;
