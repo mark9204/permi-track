@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, Statistic, Row, Col, Spin, Alert, Typography, Tag, Space, Button, Table } from 'antd';
 import { FileOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import dashboardService from '../services/dashboardService';
 import type { DashboardStats } from '../services/dashboardService';
 import { useAuthStore } from '../../../stores/authStore';
@@ -47,7 +48,9 @@ const DashboardPage: React.FC = () => {
     cancelled: 0,
     topRequestedRoles: [],
     latestRequests: [],
-    viewMode: 'Personal'
+    viewMode: 'Personal',
+    requestsByStatus: [],
+    requestsOverTime: []
   };
 
   const columns = [
@@ -145,6 +148,49 @@ const DashboardPage: React.FC = () => {
               valueStyle={{ color: '#8c8c8c' }}
               prefix={<CloseCircleOutlined />}
             />
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={16} style={{ marginTop: 24 }}>
+        <Col xs={24} lg={12}>
+          <Card title="Request Status Distribution">
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.requestsByStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {stats.requestsByStatus?.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="Activity Trend (Last 7 Days)">
+            <div style={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.requestsOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis allowDecimals={false} />
+                  <RechartsTooltip />
+                  <Bar dataKey="count" fill="#1890ff" name="Requests" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
         </Col>
       </Row>

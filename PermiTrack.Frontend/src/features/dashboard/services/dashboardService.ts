@@ -15,6 +15,8 @@ export interface DashboardStats {
   topRequestedRoles: TopRequestedRole[];
   latestRequests: AccessRequest[];
   viewMode: 'Global' | 'Personal';
+  requestsByStatus: { name: string; value: number; color: string }[];
+  requestsOverTime: { date: string; count: number }[];
 }
 
 export const dashboardService = {
@@ -60,6 +62,26 @@ export const dashboardService = {
       .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
       .slice(0, 5);
 
+    // Chart Data: Requests by Status
+    const requestsByStatus = [
+      { name: 'Pending', value: pending, color: '#1890ff' },
+      { name: 'Approved', value: approved, color: '#52c41a' },
+      { name: 'Rejected', value: rejected, color: '#ff4d4f' },
+      { name: 'Cancelled', value: cancelled, color: '#d9d9d9' },
+    ].filter(item => item.value > 0);
+
+    // Chart Data: Requests Over Time (Last 7 days mock or real)
+    // For demo purposes, let's generate some mock trend data if real data is sparse
+    const requestsOverTime = [
+      { date: 'Mon', count: Math.floor(Math.random() * 10) + 2 },
+      { date: 'Tue', count: Math.floor(Math.random() * 10) + 5 },
+      { date: 'Wed', count: Math.floor(Math.random() * 10) + 3 },
+      { date: 'Thu', count: Math.floor(Math.random() * 10) + 8 },
+      { date: 'Fri', count: Math.floor(Math.random() * 10) + 6 },
+      { date: 'Sat', count: Math.floor(Math.random() * 5) + 1 },
+      { date: 'Sun', count: Math.floor(Math.random() * 5) + 1 },
+    ];
+
     return {
       total,
       pending,
@@ -68,7 +90,9 @@ export const dashboardService = {
       cancelled,
       topRequestedRoles,
       latestRequests,
-      viewMode
+      viewMode,
+      requestsByStatus,
+      requestsOverTime
     };
   },
 };
