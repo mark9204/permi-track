@@ -1,7 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Statistic, Row, Col, List, Spin, Alert, Typography, Tag, Space } from 'antd';
-import { FileOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Card, Statistic, Row, Col, List, Spin, Alert, Typography, Tag, Space, Button } from 'antd';
+import { FileOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import dashboardService from '../services/dashboardService';
 import type { DashboardStats } from '../services/dashboardService';
 import { useAuthStore } from '../../../stores/authStore';
@@ -10,6 +11,7 @@ const { Title, Text } = Typography;
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
 
   // Determine if user is admin
   const isAdmin = React.useMemo(() => {
@@ -61,9 +63,18 @@ const DashboardPage: React.FC = () => {
               <Title level={3} style={{ marginBottom: 0 }}>Welcome, {user?.firstName || user?.username || 'User'}!</Title>
               <Text type="secondary">Quick overview of access request activity</Text>
             </div>
-            <Tag color={stats.viewMode === 'Global' ? 'purple' : 'blue'} style={{ fontSize: '14px', padding: '4px 10px' }}>
-              {stats.viewMode} View
-            </Tag>
+            <Space>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => navigate('/my-access', { state: { openCreateModal: true } })}
+              >
+                Create Request
+              </Button>
+              <Tag color={stats.viewMode === 'Global' ? 'purple' : 'blue'} style={{ fontSize: '14px', padding: '4px 10px' }}>
+                {stats.viewMode} View
+              </Tag>
+            </Space>
           </div>
         </Col>
       </Row>

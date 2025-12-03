@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Card, Button, Table, Modal, Form, Select, Input, Tag, message, Space, Popconfirm } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Button, Table, Modal, Form, Select, Input, Tag, message, Space, Popconfirm, InputNumber } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import accessRequestService from '../services/accessRequestService';
 import roleService from '../../roles/services/roleService';
+import systemConfigService from '../../admin/services/systemConfigService';
 import type { AccessRequest, SubmitRequestPayload } from '../types';
 import type { Role } from '../../roles/services/roleService';
 
@@ -24,12 +26,36 @@ const statusTag = (status: string) => {
 
 const MyRequestsPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (location.state?.openCreateModal) {
+      setIsModalOpen(true);
+      // Optional: Clear state to prevent reopening on refresh? 
+      // React Router state persists, so we might want to clear it, 
+      // but modifying history state directly is tricky without navigation.
+      // For now, this is sufficient.
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const { data: requests = [], isLoading: isRequestsLoading } = useQuery<AccessRequest[]>({ queryKey: ['my-requests'], queryFn: accessRequestService.getMyRequests });
 
   const { data: roles = [], isLoading: isRolesLoading } = useQuery<Role[]>({ queryKey: ['roles'], queryFn: roleService.getAllRoles, enabled: isModalOpen });
+
+  const { data: targetSystems = [] } = useQuery({
+    queryKey: ['targetSystems'],
+    queryFn: systemConfigService.getTargetSystems,
+    enabled: isModalOpen
+  });
+
+  const { data: actions = [] } = useQuery({
+    queryKey: ['actions'],
+    queryFn: systemConfigService.getActions,
+    enabled: isModalOpen
+  });
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => accessRequestService.cancelRequest(id),
@@ -70,6 +96,10 @@ const MyRequestsPage: React.FC = () => {
     const payload: SubmitRequestPayload = {
       roleId: Number(values.roleId),
       reason: values.reason,
+      requestType: values.requestType,
+      targetSystem: values.targetSystem,
+      action: values.action,
+      durationHours: values.durationHours,
     };
     submitMutation.mutate(payload);
   };
@@ -135,6 +165,51 @@ const MyRequestsPage: React.FC = () => {
 
       <Modal title="New Access Request" open={isModalOpen} onCancel={onCloseModal} footer={null}>
         <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form.Item
+            label="Type"
+            name="requestType"
+            rules={[{ required: true, message: 'Please select a type' }]}
+          >
+            <Select placeholder="Select type">
+              <Select.Option value="Systems & Applications">Systems & Applications</Select.Option>
+              <Select.Option value="Data & Resources">Data & Resources</Select.Option>
+              <Select.Option value="Physical Spaces">Physical Spaces</Select.Option>
+              <Select.Option value="Hardware & Assets">Hardware & Assets</Select.Option>
+              <Select.Option value="Governance & Authority">Governance & Authority</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Target System / Module"
+            name="targetSystem"
+            rules={[{ required: true, message: 'Please select a target system' }]}
+          >
+            <Select placeholder="Select target system">
+              {targetSystems.map((sys: any) => (
+                <Select.Option key={sys.id} value={sys.value}>{sys.name}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Action"
+            name="action"
+            rules={[{ required: true, message: 'Please select an action' }]}
+          >
+            <Select placeholder="Select action">
+              {actions.map((act: any) => (
+                <Select.Option key={act.id} value={act.value}>{act.name}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Duration (Hours) - Optional"
+            name="durationHours"
+          >
+            <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 24" />
+          </Form.Item>
+
           <Form.Item
             label="Role"
             name="roleId"

@@ -3,6 +3,7 @@ import { Table, Button, Tag, Card, Space, Popconfirm, Modal, Input, message, Too
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import accessRequestService from '../services/accessRequestService';
+import { useAuthStore } from '../../../stores/authStore';
 import type { AccessRequest } from '../types';
 
 const { TextArea } = Input;
@@ -23,12 +24,16 @@ const statusTag = (status: string) => {
 };
 
 const RequestApprovalPage: React.FC = () => {
+  const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<AccessRequest | null>(null);
   const [rejectComment, setRejectComment] = useState('');
 
   const { data: pending = [], isLoading } = useQuery<AccessRequest[]>({ queryKey: ['pending-requests'], queryFn: accessRequestService.getPendingRequests });
+
+  // Filter out requests made by the current user to prevent self-approval
+  const filteredPending = pending.filter(req => req.userId !== user?.id);
 
   const approveMutation = useMutation({
     mutationFn: (id: number) => accessRequestService.approveRequest(id),
@@ -127,7 +132,7 @@ const RequestApprovalPage: React.FC = () => {
 
   return (
     <Card title="Pending Access Requests" extra={<div />}> 
-      <Table rowKey="id" columns={columns} dataSource={pending} loading={isLoading} pagination={{ pageSize: 10 }} />
+      <Table rowKey="id" columns={columns} dataSource={filteredPending} loading={isLoading} pagination={{ pageSize: 10 }} />
 
       <Modal
         title="Reject Request"

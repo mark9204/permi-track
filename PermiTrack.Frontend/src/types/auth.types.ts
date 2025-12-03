@@ -24,10 +24,20 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  department?: string;
   isActive: boolean;
   roles?: (string | Role)[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  department?: string;
+  password?: string;
+  currentPassword?: string;
 }
 
 export interface LoginResponse {

@@ -9,7 +9,10 @@ import {
   KeyOutlined,
   AuditOutlined,
   SecurityScanOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  LockOutlined,
+  AppstoreOutlined,
+  SettingOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -40,6 +43,14 @@ const MainLayout: React.FC = () => {
   };
 
   const userMenu: MenuProps['items'] = [
+    {
+      key: 'profile',
+      label: <Link to="/profile">Profile</Link>,
+      icon: <UserOutlined />,
+    },
+    {
+      type: 'divider',
+    },
     {
       key: 'logout',
       label: 'Logout',
@@ -77,6 +88,24 @@ const MainLayout: React.FC = () => {
     return false;
   });
 
+  const isSuperAdmin = Array.isArray(rawRoles) && rawRoles.some((r: any) => {
+    if (!r) return false;
+    if (typeof r === 'object') {
+      const level = r.Level ?? r.level;
+      if (level !== undefined && level !== null) {
+        const parsed = Number(level);
+        if (!isNaN(parsed) && parsed >= 3) return true;
+      }
+      const name = r.name || r.roleName || r.role || '';
+      return String(name).toLowerCase() === 'superadmin';
+    }
+    
+    if (typeof r === 'string') {
+      return r.toLowerCase() === 'superadmin';
+    }
+    return false;
+  });
+
   const menuItemsBase: MenuProps['items'] = [
     {
       key: '/dashboard',
@@ -86,7 +115,7 @@ const MainLayout: React.FC = () => {
     {
       key: '/my-access',
       icon: <KeyOutlined />,
-      label: <Link to="/my-access">My Access</Link>,
+      label: <Link to="/my-access">My requests</Link>,
     },
   ];
 
@@ -96,15 +125,7 @@ const MainLayout: React.FC = () => {
       icon: <AuditOutlined />,
       label: <Link to="/approvals">Approvals</Link>,
     });
-    
-    menuItemsBase.push({
-      key: '/audit-logs',
-      icon: <SecurityScanOutlined />,
-      label: <Link to="/audit-logs">Audit Logs</Link>,
-    });
 
-    menuItemsBase.push({ type: 'divider' });
-    
     menuItemsBase.push({
       key: '/users',
       icon: <UserOutlined />,
@@ -115,6 +136,32 @@ const MainLayout: React.FC = () => {
       key: '/roles',
       icon: <SafetyCertificateOutlined />,
       label: <Link to="/roles">Roles</Link>,
+    });
+
+    menuItemsBase.push({
+      key: '/permissions',
+      icon: <LockOutlined />,
+      label: <Link to="/permissions">Permissions</Link>,
+    });
+  }
+    
+  if (isSuperAdmin) {
+    menuItemsBase.push({
+      key: 'admin',
+      icon: <SettingOutlined />,
+      label: 'Administration',
+      children: [
+        {
+          key: '/system-config',
+          icon: <AppstoreOutlined />,
+          label: <Link to="/system-config">System Config</Link>,
+        },
+        {
+          key: '/audit-logs',
+          icon: <SecurityScanOutlined />,
+          label: <Link to="/audit-logs">Audit Logs</Link>,
+        },
+      ]
     });
   }
 

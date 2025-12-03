@@ -5,11 +5,13 @@ export interface Role {
   name: string;
   description: string;
   userCount?: number;
+  department?: string;
 }
 
 export interface CreateRoleRequest {
   name: string;
   description: string;
+  department?: string;
 }
 
 const roleService = {
@@ -42,6 +44,10 @@ const roleService = {
 
   async deleteRole(id: number): Promise<void> {
     await apiClient.delete(`/roles/${id}`);
+  },
+
+  async addPermissionToRole(roleId: number, permissionId: number): Promise<void> {
+    await apiClient.post(`/roles/${roleId}/permissions`, { permissionId });
   },
 };
 

@@ -1,5 +1,5 @@
 import apiClient from './apiClient';
-import type { LoginRequest, LoginResponse, User, RegisterRequest } from '../types/auth.types';
+import type { LoginRequest, LoginResponse, User, RegisterRequest, UpdateProfileRequest } from '../types/auth.types';
 
 const login = (data: LoginRequest): Promise<LoginResponse> => {
   return apiClient.post('/auth/login', data).then(res => {
@@ -40,6 +40,10 @@ const getCurrentUser = (): Promise<User> => {
   return apiClient.get('/account/profile').then(res => res.data);
 };
 
+const updateProfile = (data: UpdateProfileRequest): Promise<User> => {
+  return apiClient.put('/account/profile', data).then(res => res.data);
+};
+
 const logout = () => {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
@@ -51,5 +55,6 @@ export const authService = {
   logout,
   refreshToken,
   getCurrentUser,
+  updateProfile,
   register,
 };

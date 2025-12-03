@@ -30,6 +30,9 @@ const accessRequestService = {
       requestedRoleId: payload.roleId,
       reason: payload.reason,
       requestedDurationHours: payload.durationHours,
+      requestType: payload.requestType,
+      targetSystem: payload.targetSystem,
+      action: payload.action,
     };
 
     const res = await apiClient.post('/access-requests/submit', body);

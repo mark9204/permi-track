@@ -4,10 +4,12 @@ import { Table, Tag, Space, Button, Input, Avatar, Badge, Card, Row, Col } from 
 import { EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, PlusOutlined } from '@ant-design/icons';
 import { userService } from '../services/userService';
 import UserDrawer from '../components/UserDrawer';
+import { useUserPermissions } from '../../../hooks/useUserPermissions';
 import type { User } from '../../../types/auth.types';
 import type { ColumnsType } from 'antd/es/table';
 
 const UserListPage = () => {
+  const { isSuperAdmin, userDepartment } = useUserPermissions();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState('');
@@ -33,6 +35,12 @@ const UserListPage = () => {
     queryKey: ['users', page, pageSize, searchText],
     queryFn: () => userService.getUsers({ page, pageSize, search: searchText }),
     placeholderData: keepPreviousData,
+    select: (data) => {
+      if (isSuperAdmin) return data;
+      // Filter by department for non-super admins
+      const filteredData = data.data.filter(u => u.department === userDepartment);
+      return { ...data, data: filteredData, total: filteredData.length };
+    }
   });
 
   const columns: ColumnsType<User> = [
@@ -50,6 +58,12 @@ const UserListPage = () => {
           </div>
         </Space>
       ),
+    },
+    {
+      title: 'Department',
+      dataIndex: 'department',
+      key: 'department',
+      render: (dept: string) => dept ? <Tag>{dept}</Tag> : <Tag>N/A</Tag>,
     },
     {
       title: 'Roles',

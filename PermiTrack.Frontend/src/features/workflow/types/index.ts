@@ -17,4 +17,7 @@ export interface SubmitRequestPayload {
   roleId: number;
   reason: string;
   durationHours?: number;
+  requestType?: string;
+  targetSystem?: string;
+  action?: string;
 }

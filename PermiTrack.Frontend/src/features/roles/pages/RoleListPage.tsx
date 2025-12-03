@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography } from 'antd';
+import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography, Tag } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import roleService from '../services/roleService';
 import type { Role, CreateRoleRequest } from '../services/roleService';
+import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
 const { Text } = Typography;
 const { TextArea } = Input;
 
 const RoleListPage: React.FC = () => {
+  const { isSuperAdmin, userDepartment } = useUserPermissions();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [form] = Form.useForm();
@@ -18,6 +20,11 @@ const RoleListPage: React.FC = () => {
   const { data: roles, isLoading } = useQuery({
     queryKey: ['roles'],
     queryFn: roleService.getAllRoles,
+    select: (data) => {
+      if (isSuperAdmin) return data;
+      // Filter by department for non-super admins
+      return data.filter(r => r.department === userDepartment);
+    }
   });
 
   // Mutations
@@ -60,6 +67,9 @@ const RoleListPage: React.FC = () => {
   const handleAdd = () => {
     setEditingRole(null);
     form.resetFields();
+    if (!isSuperAdmin && userDepartment) {
+      form.setFieldsValue({ department: userDepartment });
+    }
     setIsDrawerOpen(true);
   };
 
@@ -68,6 +78,7 @@ const RoleListPage: React.FC = () => {
     form.setFieldsValue({
       name: role.name,
       description: role.description,
+      department: role.department,
     });
     setIsDrawerOpen(true);
   };
@@ -176,6 +187,14 @@ const RoleListPage: React.FC = () => {
             label="Description"
           >
             <TextArea rows={4} placeholder="Enter role description..." />
+          </Form.Item>
+
+          <Form.Item
+            name="department"
+            label="Department"
+            rules={[{ required: true, message: 'Please enter department' }]}
+          >
+            <Input disabled={!isSuperAdmin} placeholder="Department" />
           </Form.Item>
         </Form>
       </Drawer>

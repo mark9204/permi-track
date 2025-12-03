@@ -6,6 +6,7 @@ import { userService } from '../services/userService';
 import type { CreateUserRequest, UpdateUserRequest } from '../services/userService';
 import roleService from '../../roles/services/roleService';
 import type { User } from '../../../types/auth.types';
+import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
 interface UserDrawerProps {
   open: boolean;
@@ -14,6 +15,7 @@ interface UserDrawerProps {
 }
 
 const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
+  const { isSuperAdmin, userDepartment } = useUserPermissions();
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const isEditMode = !!userToEdit;
@@ -21,6 +23,10 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
   const { data: roles = [], isLoading: isRolesLoading } = useQuery<Role[]>({
     queryKey: ['roles'],
     queryFn: roleService.getAllRoles,
+    select: (data) => {
+      if (isSuperAdmin) return data;
+      return data.filter(role => role.department === userDepartment);
+    },
   });
 
   useEffect(() => {
@@ -32,9 +38,13 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
         });
       } else {
         form.resetFields();
+        // Pre-fill department for non-super admins
+        if (!isSuperAdmin && userDepartment) {
+          form.setFieldsValue({ department: userDepartment });
+        }
       }
     }
-  }, [open, userToEdit, form]);
+  }, [open, userToEdit, form, isSuperAdmin, userDepartment]);
 
   const createMutation = useMutation({
     mutationFn: (data: CreateUserRequest) => userService.createUser(data),
@@ -116,6 +126,14 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
           rules={[{ required: true, message: 'Please enter last name' }]}
         >
           <Input placeholder="Doe" />
+        </Form.Item>
+
+        <Form.Item
+          name="department"
+          label="Department"
+          rules={[{ required: true, message: 'Please enter department' }]}
+        >
+          <Input placeholder="IT" disabled={!isSuperAdmin} />
         </Form.Item>
 
         {!isEditMode && (
