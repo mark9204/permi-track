@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography, Tag } from 'antd';
+import { Table, Card, Button, Space, Popconfirm, Drawer, Form, Input, message, Typography, Tag, Select, Checkbox, Divider } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import roleService from '../services/roleService';
+import systemConfigService from '../../admin/services/systemConfigService';
 import type { Role, CreateRoleRequest } from '../services/roleService';
 import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
@@ -15,6 +16,7 @@ const RoleListPage: React.FC = () => {
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const selectedDepartmentName = Form.useWatch('department', form);
 
   // Fetch Roles
   const { data: roles, isLoading } = useQuery({
@@ -26,6 +28,29 @@ const RoleListPage: React.FC = () => {
       return data.filter(r => r.department === userDepartment);
     }
   });
+
+  const { data: departments = [], isLoading: isDepartmentsLoading } = useQuery({
+    queryKey: ['departments'],
+    queryFn: systemConfigService.getDepartments,
+  });
+
+  const { data: targetSystems = [] } = useQuery({
+    queryKey: ['targetSystems'],
+    queryFn: systemConfigService.getTargetSystems,
+  });
+
+  const { data: actions = [] } = useQuery({
+    queryKey: ['actions'],
+    queryFn: systemConfigService.getActions,
+  });
+
+  // Filter systems based on selected department
+  const filteredSystems = React.useMemo(() => {
+    if (!selectedDepartmentName) return [];
+    const dept = departments.find(d => d.name === selectedDepartmentName);
+    if (!dept) return [];
+    return targetSystems.filter(sys => sys.departmentId === dept.id);
+  }, [selectedDepartmentName, departments, targetSystems]);
 
   // Mutations
   const createMutation = useMutation({
@@ -192,10 +217,43 @@ const RoleListPage: React.FC = () => {
           <Form.Item
             name="department"
             label="Department"
-            rules={[{ required: true, message: 'Please enter department' }]}
+            rules={[{ required: true, message: 'Please select department' }]}
           >
-            <Input disabled={!isSuperAdmin} placeholder="Department" />
+            <Select
+              placeholder="Select department"
+              disabled={!isSuperAdmin}
+              loading={isDepartmentsLoading}
+              options={departments.map(d => ({ label: d.name, value: d.name }))}
+            />
           </Form.Item>
+
+          {selectedDepartmentName && filteredSystems.length > 0 && (
+            <>
+              <Divider orientation="left">Permissions</Divider>
+              {filteredSystems.map(sys => {
+                const sysActions = actions.filter(a => a.targetSystemId === sys.id);
+                if (sysActions.length === 0) return null;
+                
+                return (
+                  <div key={sys.id} style={{ marginBottom: 16 }}>
+                    <Text strong>{sys.name}</Text>
+                    <div style={{ marginTop: 8 }}>
+                      {sysActions.map(action => (
+                        <Form.Item 
+                          key={action.id} 
+                          name={['permissions', `${sys.id}_${action.id}`]} 
+                          valuePropName="checked"
+                          noStyle
+                        >
+                          <Checkbox style={{ marginLeft: 8 }}>{action.name}</Checkbox>
+                        </Form.Item>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
         </Form>
       </Drawer>
     </div>

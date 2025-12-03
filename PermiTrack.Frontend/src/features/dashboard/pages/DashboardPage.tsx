@@ -1,24 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Statistic, Row, Col, List, Spin, Alert, Typography, Tag, Space, Button } from 'antd';
+import { Card, Statistic, Row, Col, Spin, Alert, Typography, Tag, Space, Button, Table } from 'antd';
 import { FileOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import dashboardService from '../services/dashboardService';
 import type { DashboardStats } from '../services/dashboardService';
 import { useAuthStore } from '../../../stores/authStore';
+import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
 const { Title, Text } = Typography;
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-
-  // Determine if user is admin
-  const isAdmin = React.useMemo(() => {
-    if (!user?.roles) return false;
-    const roles = Array.isArray(user.roles) ? user.roles : [user.roles];
-    return roles.some((r: any) => String(r).toLowerCase() === 'admin');
-  }, [user]);
+  const { isAdmin } = useUserPermissions();
 
   const { data, isLoading, isError, error } = useQuery<DashboardStats, Error>({
     queryKey: ['dashboard-stats', isAdmin],
@@ -51,8 +46,35 @@ const DashboardPage: React.FC = () => {
     rejected: 0,
     cancelled: 0,
     topRequestedRoles: [],
+    latestRequests: [],
     viewMode: 'Personal'
   };
+
+  const columns = [
+    {
+      title: 'Role',
+      dataIndex: 'requestedRoleName',
+      key: 'role',
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => {
+        let color = 'default';
+        if (status === 'Pending') color = 'processing';
+        if (status === 'Approved') color = 'success';
+        if (status === 'Rejected') color = 'error';
+        return <Tag color={color}>{status}</Tag>;
+      }
+    },
+    {
+      title: 'Date',
+      dataIndex: 'requestedAt',
+      key: 'date',
+      render: (date: string) => new Date(date).toLocaleDateString(),
+    },
+  ];
 
   return (
     <div>
@@ -129,18 +151,13 @@ const DashboardPage: React.FC = () => {
 
       <Row gutter={16} style={{ marginTop: 24 }}>
         <Col xs={24} lg={16}>
-          <Card title="Top Requested Roles">
-            <List
-              dataSource={stats.topRequestedRoles}
-              locale={{ emptyText: 'No roles requested yet' }}
-              renderItem={(item: any) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={item.roleName}
-                    description={<Text type="secondary">Requested {item.count} times</Text>}
-                  />
-                </List.Item>
-              )}
+          <Card title="Latest Requests">
+            <Table
+              dataSource={stats.latestRequests}
+              columns={columns}
+              rowKey="id"
+              pagination={false}
+              locale={{ emptyText: 'No requests found' }}
             />
           </Card>
         </Col>

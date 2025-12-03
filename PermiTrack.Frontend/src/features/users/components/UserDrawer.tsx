@@ -1,10 +1,12 @@
 import type { Role } from '../../roles/services/roleService';
 import { useEffect } from 'react';
 import { Drawer, Form, Input, Button, Select, message, Space } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { userService } from '../services/userService';
 import type { CreateUserRequest, UpdateUserRequest } from '../services/userService';
 import roleService from '../../roles/services/roleService';
+import systemConfigService from '../../admin/services/systemConfigService';
 import type { User } from '../../../types/auth.types';
 import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
@@ -27,6 +29,11 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
       if (isSuperAdmin) return data;
       return data.filter(role => role.department === userDepartment);
     },
+  });
+
+  const { data: departments = [], isLoading: isDepartmentsLoading } = useQuery({
+    queryKey: ['departments'],
+    queryFn: systemConfigService.getDepartments,
   });
 
   useEffect(() => {
@@ -69,6 +76,17 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
       message.error('Failed to update user');
     },
   });
+
+  const generatePassword = () => {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+    let retVal = "";
+    for (let i = 0, n = charset.length; i < length; ++i) {
+      retVal += charset.charAt(Math.floor(Math.random() * n));
+    }
+    form.setFieldsValue({ password: retVal });
+    message.success('Password generated');
+  };
 
   const onFinish = (values: any) => {
     if (isEditMode) {
@@ -131,18 +149,31 @@ const UserDrawer = ({ open, onClose, userToEdit }: UserDrawerProps) => {
         <Form.Item
           name="department"
           label="Department"
-          rules={[{ required: true, message: 'Please enter department' }]}
+          rules={[{ required: true, message: 'Please select department' }]}
         >
-          <Input placeholder="IT" disabled={!isSuperAdmin} />
+          <Select
+            placeholder="Select department"
+            disabled={!isSuperAdmin}
+            loading={isDepartmentsLoading}
+            options={departments.map(d => ({ label: d.name, value: d.name }))}
+          />
         </Form.Item>
 
         {!isEditMode && (
           <Form.Item
-            name="password"
             label="Password"
-            rules={[{ required: true, message: 'Please enter password' }]}
+            required
           >
-            <Input.Password placeholder="Password" />
+            <Space.Compact style={{ width: '100%' }}>
+              <Form.Item
+                name="password"
+                noStyle
+                rules={[{ required: true, message: 'Please enter password' }]}
+              >
+                <Input.Password placeholder="Password" />
+              </Form.Item>
+              <Button icon={<ReloadOutlined />} onClick={generatePassword} title="Generate Password" />
+            </Space.Compact>
           </Form.Item>
         )}
 

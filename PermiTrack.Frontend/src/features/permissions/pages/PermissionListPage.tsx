@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import permissionService from '../services/permissionService';
 import roleService from '../../roles/services/roleService';
+import systemConfigService from '../../admin/services/systemConfigService';
 import type { Permission, CreatePermissionRequest } from '../services/permissionService';
 import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
@@ -36,6 +37,21 @@ const PermissionListPage: React.FC = () => {
       if (isSuperAdmin) return data;
       return data.filter(role => role.department === userDepartment);
     },
+  });
+
+  const { data: departments = [], isLoading: isDepartmentsLoading } = useQuery({
+    queryKey: ['departments'],
+    queryFn: systemConfigService.getDepartments,
+  });
+
+  const { data: targetSystems = [] } = useQuery({
+    queryKey: ['targetSystems'],
+    queryFn: systemConfigService.getTargetSystems,
+  });
+
+  const { data: actions = [] } = useQuery({
+    queryKey: ['actions'],
+    queryFn: systemConfigService.getActions,
   });
 
   // Mutations
@@ -101,6 +117,8 @@ const PermissionListPage: React.FC = () => {
       name: permission.name,
       description: permission.description,
       department: permission.department,
+      targetSystem: permission.targetSystem,
+      action: permission.action,
     });
     setIsDrawerOpen(true);
   };
@@ -180,6 +198,58 @@ const PermissionListPage: React.FC = () => {
       >
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
           <Form.Item
+            name="targetSystem"
+            label="Target System"
+            rules={[{ required: true, message: 'Please select target system' }]}
+          >
+            <Select 
+              placeholder="Select target system"
+              onChange={(value) => {
+                form.setFieldsValue({ action: undefined });
+                const action = form.getFieldValue('action');
+                if (value && action) {
+                  form.setFieldsValue({ name: `${value}_${action}`.toUpperCase() });
+                } else if (value) {
+                   // If only system is selected, maybe just set that part or wait?
+                   // Better to wait for action.
+                }
+              }}
+            >
+              {targetSystems.map((sys: any) => (
+                <Option key={sys.id} value={sys.name}>{sys.name}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="action"
+            label="Action"
+            dependencies={['targetSystem']}
+            rules={[{ required: true, message: 'Please select action' }]}
+          >
+            <Select 
+              placeholder="Select action"
+              onChange={(value) => {
+                const system = form.getFieldValue('targetSystem');
+                if (system && value) {
+                  form.setFieldsValue({ name: `${system}_${value}`.toUpperCase() });
+                }
+              }}
+            >
+              {actions
+                .filter((act: any) => {
+                  const selectedSystemName = form.getFieldValue('targetSystem');
+                  if (!selectedSystemName) return true;
+                  const selectedSystem = targetSystems.find((s: any) => s.name === selectedSystemName);
+                  return !selectedSystem || act.targetSystemId === selectedSystem.id;
+                })
+                .map((act: any) => (
+                  <Option key={act.id} value={act.name}>{act.name}</Option>
+                ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
             name="name"
             label="Permission Name"
             rules={[{ required: true, message: 'Please enter permission name' }]}
@@ -198,9 +268,14 @@ const PermissionListPage: React.FC = () => {
           <Form.Item
             name="department"
             label="Department"
-            rules={[{ required: true, message: 'Please enter department' }]}
+            rules={[{ required: true, message: 'Please select department' }]}
           >
-            <Input disabled={!isSuperAdmin} placeholder="Department" />
+            <Select
+              placeholder="Select department"
+              disabled={!isSuperAdmin}
+              loading={isDepartmentsLoading}
+              options={departments.map(d => ({ label: d.name, value: d.name }))}
+            />
           </Form.Item>
 
           {!editingPermission && (

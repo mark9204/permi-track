@@ -13,6 +13,7 @@ export interface DashboardStats {
   rejected: number;
   cancelled: number;
   topRequestedRoles: TopRequestedRole[];
+  latestRequests: AccessRequest[];
   viewMode: 'Global' | 'Personal';
 }
 
@@ -54,6 +55,11 @@ export const dashboardService = {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    // Get Latest Requests
+    const latestRequests = [...requests]
+      .sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime())
+      .slice(0, 5);
+
     return {
       total,
       pending,
@@ -61,6 +67,7 @@ export const dashboardService = {
       rejected,
       cancelled,
       topRequestedRoles,
+      latestRequests,
       viewMode
     };
   },

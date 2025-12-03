@@ -1,63 +1,110 @@
-import apiClient from '../../../services/apiClient';
 import type { AccessRequest, SubmitRequestPayload } from '../types';
 
-const extractArray = (res: any): any[] => {
-  if (!res) return [];
-  // 1. Ha a válasz { requests: [...] }
-  if (res.data && Array.isArray(res.data.requests)) return res.data.requests;
-  // 2. Ha a válasz { data: [...] }
-  if (Array.isArray(res.data)) return res.data;
-  // 3. Ha a válasz { data: { data: [...] } }
-  if (res.data && Array.isArray(res.data.data)) return res.data.data;
-  
-  return [];
-};
+// --- DEMO STATE ---
+let mockRequests: AccessRequest[] = [
+  { 
+    id: 101, 
+    userId: 2, 
+    requestedRoleId: 1, 
+    requestedRoleName: 'IT Manager',
+    status: 'Pending', 
+    requestedAt: '2025-12-01T10:00:00Z', 
+    reason: 'Project Alpha Access', 
+    uncPath: '',
+    reviewerComment: ''
+  },
+  { 
+    id: 102, 
+    userId: 3, 
+    requestedRoleId: 2, 
+    requestedRoleName: 'HR Specialist',
+    status: 'Approved', 
+    requestedAt: '2025-11-28T14:30:00Z', 
+    approvedAt: '2025-11-29T09:00:00Z',
+    reason: 'HR Onboarding', 
+    uncPath: '',
+    reviewerComment: 'Approved by Admin'
+  },
+  { 
+    id: 103, 
+    userId: 1, 
+    requestedRoleId: 3, 
+    requestedRoleName: 'Finance Auditor',
+    status: 'Rejected', 
+    requestedAt: '2025-11-20T11:15:00Z', 
+    rejectedAt: '2025-11-21T16:45:00Z',
+    reason: 'Wrong department', 
+    uncPath: '',
+    reviewerComment: 'Please request for your own department'
+  },
+];
 
 const accessRequestService = {
   async getMyRequests(): Promise<AccessRequest[]> {
-    const res = await apiClient.get('/access-requests/my-requests');
-    return extractArray(res) as AccessRequest[];
+    await new Promise(resolve => setTimeout(resolve, 400)); // Simulate network latency
+    return [...mockRequests];
   },
 
   async getAllRequests(): Promise<AccessRequest[]> {
-    // Calls the endpoint that returns all requests (filtering can be added later)
-    const res = await apiClient.get('/access-requests');
-    return extractArray(res) as AccessRequest[];
+    await new Promise(resolve => setTimeout(resolve, 400));
+    return [...mockRequests];
   },
 
   async submitRequest(payload: SubmitRequestPayload): Promise<AccessRequest> {
-    const body = {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const newReq: AccessRequest = {
+      id: Math.floor(Math.random() * 10000),
+      userId: 1, // Simulating current user
       requestedRoleId: payload.roleId,
+      requestedRoleName: 'Requested Role', // In a real app this would be fetched
+      status: 'Pending',
+      requestedAt: new Date().toISOString(),
       reason: payload.reason,
-      requestedDurationHours: payload.durationHours,
-      requestType: payload.requestType,
-      targetSystem: payload.targetSystem,
-      action: payload.action,
+      uncPath: payload.uncPath,
+      reviewerComment: ''
     };
-
-    const res = await apiClient.post('/access-requests/submit', body);
-    // prefer res.data if available
-    return (res && (res.data || res)) as AccessRequest;
+    
+    mockRequests.unshift(newReq); // Add to top of list
+    return newReq;
   },
 
   async cancelRequest(id: number): Promise<AccessRequest> {
-    const res = await apiClient.put(`/access-requests/${id}/cancel`);
-    return (res && (res.data || res)) as AccessRequest;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const req = mockRequests.find(r => r.id === id);
+    if (req) {
+      req.status = 'Cancelled';
+      return { ...req };
+    }
+    throw new Error('Request not found');
   },
 
   async getPendingRequests(): Promise<AccessRequest[]> {
-    const res = await apiClient.get('/access-requests/pending');
-    return extractArray(res) as AccessRequest[];
+    await new Promise(resolve => setTimeout(resolve, 400));
+    return mockRequests.filter(r => r.status === 'Pending');
   },
 
   async approveRequest(id: number): Promise<AccessRequest> {
-    const res = await apiClient.put(`/access-requests/${id}/approve`);
-    return (res && (res.data || res)) as AccessRequest;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const req = mockRequests.find(r => r.id === id);
+    if (req) {
+      req.status = 'Approved';
+      req.approvedAt = new Date().toISOString();
+      return { ...req };
+    }
+    throw new Error('Request not found');
   },
 
   async rejectRequest(id: number, comment: string): Promise<AccessRequest> {
-    const res = await apiClient.put(`/access-requests/${id}/reject`, { reviewerComment: comment });
-    return (res && (res.data || res)) as AccessRequest;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const req = mockRequests.find(r => r.id === id);
+    if (req) {
+      req.status = 'Rejected';
+      req.rejectedAt = new Date().toISOString();
+      req.reviewerComment = comment;
+      return { ...req };
+    }
+    throw new Error('Request not found');
   },
 };
 

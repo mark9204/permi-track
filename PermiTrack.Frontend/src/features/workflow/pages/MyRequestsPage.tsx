@@ -100,6 +100,7 @@ const MyRequestsPage: React.FC = () => {
       targetSystem: values.targetSystem,
       action: values.action,
       durationHours: values.durationHours,
+      uncPath: values.uncPath,
     };
     submitMutation.mutate(payload);
   };
@@ -109,6 +110,12 @@ const MyRequestsPage: React.FC = () => {
       title: 'Role',
       dataIndex: 'requestedRoleName',
       key: 'role',
+    },
+    {
+      title: 'UNC Path',
+      dataIndex: 'uncPath',
+      key: 'uncPath',
+      render: (val: string) => val ? <code style={{ fontSize: '12px' }}>{val}</code> : '-',
     },
     {
       title: 'Date',
@@ -189,6 +196,27 @@ const MyRequestsPage: React.FC = () => {
                 <Select.Option key={sys.id} value={sys.value}>{sys.name}</Select.Option>
               ))}
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.targetSystem !== currentValues.targetSystem}
+          >
+            {({ getFieldValue }) => {
+              const selectedSystemValue = getFieldValue('targetSystem');
+              const selectedSystem = targetSystems.find((s: any) => s.value === selectedSystemValue);
+              
+              return selectedSystem?.category === 'File System' ? (
+                <Form.Item
+                  name="uncPath"
+                  label="Folder Path / UNC Path"
+                  rules={[{ required: true, message: 'Please enter the folder path' }]}
+                  help="e.g. \\server\share\folder"
+                >
+                  <Input placeholder="\\server\share\folder" />
+                </Form.Item>
+              ) : null;
+            }}
           </Form.Item>
 
           <Form.Item

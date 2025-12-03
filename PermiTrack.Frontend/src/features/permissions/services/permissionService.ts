@@ -6,6 +6,8 @@ export interface Permission {
   description: string;
   category?: string;
   department?: string;
+  targetSystem?: string;
+  action?: string;
 }
 
 export interface CreatePermissionRequest {
@@ -13,6 +15,8 @@ export interface CreatePermissionRequest {
   description: string;
   category?: string;
   department?: string;
+  targetSystem?: string;
+  action?: string;
 }
 
 const permissionService = {

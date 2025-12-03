@@ -90,6 +90,12 @@ const RequestApprovalPage: React.FC = () => {
       key: 'role',
     },
     {
+      title: 'UNC Path',
+      dataIndex: 'uncPath',
+      key: 'uncPath',
+      render: (val: string) => val ? <code style={{ fontSize: '12px' }}>{val}</code> : '-',
+    },
+    {
       title: 'Date',
       dataIndex: 'requestedAt',
       key: 'date',

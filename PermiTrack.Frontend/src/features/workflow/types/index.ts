@@ -11,6 +11,7 @@ export interface AccessRequest {
   approvedAt?: string | null;
   rejectedAt?: string | null;
   reviewerComment?: string | null;
+  uncPath?: string;
 }
 
 export interface SubmitRequestPayload {
@@ -20,4 +21,5 @@ export interface SubmitRequestPayload {
   requestType?: string;
   targetSystem?: string;
   action?: string;
+  uncPath?: string;
 }
