@@ -1,47 +1,57 @@
 import apiClient from './apiClient';
 import type { LoginRequest, LoginResponse, User, RegisterRequest, UpdateProfileRequest } from '../types/auth.types';
 
-const login = (data: LoginRequest): Promise<LoginResponse> => {
-  return apiClient.post('/auth/login', data).then(res => {
-    if (res.data.accessToken) {
-      localStorage.setItem('accessToken', res.data.accessToken);
-      localStorage.setItem('refreshToken', res.data.refreshToken);
-      apiClient.defaults.headers.common['Authorization'] = `Bearer ${res.data.accessToken}`;
-    }
-    return res.data;
-  });
+// --- DEMO STATE ---
+const mockUser: User = {
+  id: 1,
+  username: 'demo_user',
+  email: 'demo@company.com',
+  firstName: 'Demo',
+  lastName: 'User',
+  isActive: true,
+  roles: ['Admin'],
+  department: 'IT',
+  createdAt: '2025-01-01T00:00:00Z',
+  updatedAt: '2025-01-01T00:00:00Z'
 };
 
-const refreshToken = (): Promise<{ accessToken: string }> => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  return apiClient.post('/auth/refresh', { refreshToken }).then(res => res.data);
+const login = async (data: LoginRequest): Promise<LoginResponse> => {
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  const response: LoginResponse = {
+    accessToken: 'mock-access-token',
+    refreshToken: 'mock-refresh-token',
+    expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+    user: { ...mockUser, username: data.username },
+    roles: ['Admin'],
+    permissions: []
+  };
+
+  localStorage.setItem('accessToken', response.accessToken);
+  localStorage.setItem('refreshToken', response.refreshToken);
+  
+  return response;
 };
 
-const register = (data: RegisterRequest): Promise<void> => {
-  return apiClient.post('/auth/register', data)
-    .then(() => {
-      return;
-    })
-    .catch((err: any) => {
-      console.error('authService.register failed', {
-        url: '/auth/register',
-        payload: data,
-        status: err?.response?.status,
-        responseData: err?.response?.data,
-        message: err?.message,
-      });
-
-      const serverMsg = err?.response?.data?.message || err?.response?.data || err?.message;
-      throw new Error(`Registration failed: ${serverMsg} (status: ${err?.response?.status})`);
-    });
+const refreshToken = async (): Promise<{ accessToken: string }> => {
+  await new Promise(resolve => setTimeout(resolve, 200));
+  return { accessToken: 'mock-refreshed-token' };
 };
 
-const getCurrentUser = (): Promise<User> => {
-  return apiClient.get('/account/profile').then(res => res.data);
+const register = async (data: RegisterRequest): Promise<void> => {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  console.log('Registered user:', data);
+  return;
 };
 
-const updateProfile = (data: UpdateProfileRequest): Promise<User> => {
-  return apiClient.put('/account/profile', data).then(res => res.data);
+const getCurrentUser = async (): Promise<User> => {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return { ...mockUser };
+};
+
+const updateProfile = async (data: UpdateProfileRequest): Promise<User> => {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return { ...mockUser, ...data };
 };
 
 const logout = () => {

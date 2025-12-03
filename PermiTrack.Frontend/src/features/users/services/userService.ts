@@ -28,9 +28,42 @@ export interface UpdateUserRequest {
 
 // --- DEMO STATE ---
 let mockUsers: User[] = [
-  { id: 1, username: 'admin', email: 'admin@company.com', firstName: 'Admin', lastName: 'User', isActive: true, roles: ['Admin'], department: 'IT' },
-  { id: 2, username: 'jdoe', email: 'jdoe@company.com', firstName: 'John', lastName: 'Doe', isActive: true, roles: ['User'], department: 'HR' },
-  { id: 3, username: 'asmith', email: 'asmith@company.com', firstName: 'Alice', lastName: 'Smith', isActive: true, roles: ['Manager'], department: 'Finance' },
+  { 
+    id: 1, 
+    username: 'admin', 
+    email: 'admin@company.com', 
+    firstName: 'Admin', 
+    lastName: 'User', 
+    isActive: true, 
+    roles: ['Admin'], 
+    department: 'IT',
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z'
+  },
+  { 
+    id: 2, 
+    username: 'jdoe', 
+    email: 'jdoe@company.com', 
+    firstName: 'John', 
+    lastName: 'Doe', 
+    isActive: true, 
+    roles: ['User'], 
+    department: 'HR',
+    createdAt: '2025-01-02T00:00:00Z',
+    updatedAt: '2025-01-02T00:00:00Z'
+  },
+  { 
+    id: 3, 
+    username: 'asmith', 
+    email: 'asmith@company.com', 
+    firstName: 'Alice', 
+    lastName: 'Smith', 
+    isActive: true, 
+    roles: ['Manager'], 
+    department: 'Finance',
+    createdAt: '2025-01-03T00:00:00Z',
+    updatedAt: '2025-01-03T00:00:00Z'
+  },
 ];
 
 const getUsers = async (params: UserQueryParams): Promise<PaginatedResponse<User>> => {
@@ -47,12 +80,17 @@ const getUsers = async (params: UserQueryParams): Promise<PaginatedResponse<User
     );
   }
 
+  const page = params.page || 1;
+  const pageSize = params.pageSize || 10;
+
   return {
     data: filtered,
-    total: filtered.length,
-    page: params.page || 1,
-    pageSize: params.pageSize || 10,
-    totalPages: Math.ceil(filtered.length / (params.pageSize || 10))
+    pagination: {
+      page,
+      pageSize,
+      totalCount: filtered.length,
+      totalPages: Math.ceil(filtered.length / pageSize)
+    }
   };
 };
 
@@ -66,7 +104,9 @@ const createUser = async (data: CreateUserRequest): Promise<User> => {
     lastName: data.lastName,
     isActive: true,
     roles: ['User'], // Default role for demo
-    department: 'IT' // Default department for demo
+    department: 'IT', // Default department for demo
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   };
   mockUsers.push(newUser);
   return newUser;
