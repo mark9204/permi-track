@@ -14,6 +14,50 @@ let mockRequests: AccessRequest[] = [
     reviewerComment: ''
   },
   { 
+    id: 104, 
+    userId: 4, 
+    requestedRoleId: 10, 
+    requestedRoleName: 'Server Room Entry',
+    status: 'Pending', 
+    requestedAt: '2025-12-04T08:15:00Z', 
+    reason: 'Need physical access for server maintenance', 
+    uncPath: '',
+    reviewerComment: ''
+  },
+  { 
+    id: 105, 
+    userId: 5, 
+    requestedRoleId: 11, 
+    requestedRoleName: 'Finance Data Export',
+    status: 'Pending', 
+    requestedAt: '2025-12-04T09:30:00Z', 
+    reason: 'Q4 Audit Preparation', 
+    uncPath: '',
+    reviewerComment: ''
+  },
+  { 
+    id: 106, 
+    userId: 6, 
+    requestedRoleId: 12, 
+    requestedRoleName: 'VPN Access',
+    status: 'Pending', 
+    requestedAt: '2025-12-03T16:45:00Z', 
+    reason: 'Remote work request for next week', 
+    uncPath: '',
+    reviewerComment: ''
+  },
+  { 
+    id: 107, 
+    userId: 2, 
+    requestedRoleId: 13, 
+    requestedRoleName: 'Project Blueprints',
+    status: 'Pending', 
+    requestedAt: '2025-12-04T11:00:00Z', 
+    reason: 'Architecture review', 
+    uncPath: '\\\\server\\blueprints\\project-x',
+    reviewerComment: ''
+  },
+  { 
     id: 102, 
     userId: 3, 
     requestedRoleId: 2, 

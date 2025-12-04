@@ -15,6 +15,7 @@ import {
   SettingOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../../stores/authStore';
+import { useUserPermissions } from '../../hooks/useUserPermissions';
 
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -23,6 +24,7 @@ const { Header, Content, Footer, Sider } = Layout;
 
 const MainLayout: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuthStore();
+  const { isAdmin, isSuperAdmin, isManager } = useUserPermissions();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -59,53 +61,6 @@ const MainLayout: React.FC = () => {
     },
   ];
 
-  // Determine admin role robustly based on Level >= 2
-  const rawRoles = user?.roles ?? [];
-  
-  const isAdmin = Array.isArray(rawRoles) && rawRoles.some((r: any) => {
-    if (!r) return false;
-    
-    // Check if role is an object
-    if (typeof r === 'object') {
-      // 1. Check Level (handles number or string "2")
-      const level = r.Level ?? r.level;
-      if (level !== undefined && level !== null) {
-        const parsed = Number(level);
-        if (!isNaN(parsed) && parsed >= 2) return true;
-      }
-
-      // 2. Fallback: Check name for 'admin' inside object (in case Level is missing)
-      const name = r.name || r.roleName || r.role || '';
-      const lowerName = String(name).toLowerCase();
-      return lowerName === 'admin' || lowerName === 'superadmin';
-    }
-
-    // Fallback for string roles
-    if (typeof r === 'string') {
-      const lower = r.toLowerCase();
-      return lower === 'admin' || lower === 'superadmin';
-    }
-    return false;
-  });
-
-  const isSuperAdmin = Array.isArray(rawRoles) && rawRoles.some((r: any) => {
-    if (!r) return false;
-    if (typeof r === 'object') {
-      const level = r.Level ?? r.level;
-      if (level !== undefined && level !== null) {
-        const parsed = Number(level);
-        if (!isNaN(parsed) && parsed >= 3) return true;
-      }
-      const name = r.name || r.roleName || r.role || '';
-      return String(name).toLowerCase() === 'superadmin';
-    }
-    
-    if (typeof r === 'string') {
-      return r.toLowerCase() === 'superadmin';
-    }
-    return false;
-  });
-
   const menuItemsBase: MenuProps['items'] = [
     {
       key: '/dashboard',
@@ -119,7 +74,7 @@ const MainLayout: React.FC = () => {
     },
   ];
 
-  if (isAdmin) {
+  if (isAdmin || isManager) {
     menuItemsBase.push({
       key: '/approvals',
       icon: <AuditOutlined />,
@@ -151,6 +106,7 @@ const MainLayout: React.FC = () => {
     });
   }
     
+
   if (isSuperAdmin) {
     menuItemsBase.push({
       key: 'admin',

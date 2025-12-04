@@ -4,7 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import permissionService from '../services/permissionService';
 import roleService from '../../roles/services/roleService';
-import systemConfigService from '../../admin/services/systemConfigService';
+import systemConfigService, { SYSTEM_CATEGORIES } from '../../admin/services/systemConfigService';
 import type { Permission, CreatePermissionRequest } from '../services/permissionService';
 import { useUserPermissions } from '../../../hooks/useUserPermissions';
 
@@ -145,6 +145,20 @@ const PermissionListPage: React.FC = () => {
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
+      title: 'Target System',
+      dataIndex: 'targetSystem',
+      key: 'targetSystem',
+      filters: targetSystems.map((sys: any) => ({ text: sys.name, value: sys.name })),
+      onFilter: (value: any, record: Permission) => record.targetSystem === value,
+    },
+    {
+      title: 'Action',
+      dataIndex: 'action',
+      key: 'action',
+      filters: Array.from(new Set(actions.map((a: any) => a.name))).map(name => ({ text: name, value: name })),
+      onFilter: (value: any, record: Permission) => record.action === value,
+    },
+    {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
@@ -198,55 +212,86 @@ const PermissionListPage: React.FC = () => {
       >
         <Form layout="vertical" form={form} onFinish={handleSubmit}>
           <Form.Item
-            name="targetSystem"
-            label="Target System"
-            rules={[{ required: true, message: 'Please select target system' }]}
+            name="category"
+            label="Category"
+            rules={[{ required: true, message: 'Please select category' }]}
           >
-            <Select 
-              placeholder="Select target system"
-              onChange={(value) => {
-                form.setFieldsValue({ action: undefined });
-                const action = form.getFieldValue('action');
-                if (value && action) {
-                  form.setFieldsValue({ name: `${value}_${action}`.toUpperCase() });
-                } else if (value) {
-                   // If only system is selected, maybe just set that part or wait?
-                   // Better to wait for action.
-                }
+            <Select
+              placeholder="Select category"
+              onChange={() => {
+                form.setFieldsValue({ targetSystem: undefined, action: undefined });
               }}
             >
-              {targetSystems.map((sys: any) => (
-                <Option key={sys.id} value={sys.name}>{sys.name}</Option>
+              {SYSTEM_CATEGORIES.map((cat) => (
+                <Option key={cat} value={cat}>{cat}</Option>
               ))}
             </Select>
           </Form.Item>
 
           <Form.Item
-            name="action"
-            label="Action"
-            dependencies={['targetSystem']}
-            rules={[{ required: true, message: 'Please select action' }]}
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.category !== currentValues.category}
           >
-            <Select 
-              placeholder="Select action"
-              onChange={(value) => {
-                const system = form.getFieldValue('targetSystem');
-                if (system && value) {
-                  form.setFieldsValue({ name: `${system}_${value}`.toUpperCase() });
-                }
-              }}
-            >
-              {actions
-                .filter((act: any) => {
-                  const selectedSystemName = form.getFieldValue('targetSystem');
-                  if (!selectedSystemName) return true;
-                  const selectedSystem = targetSystems.find((s: any) => s.name === selectedSystemName);
-                  return !selectedSystem || act.targetSystemId === selectedSystem.id;
-                })
-                .map((act: any) => (
-                  <Option key={act.id} value={act.name}>{act.name}</Option>
-                ))}
-            </Select>
+            {({ getFieldValue }) => {
+              const selectedCategory = getFieldValue('category');
+              return (
+                <Form.Item
+                  name="targetSystem"
+                  label="Target System"
+                  rules={[{ required: true, message: 'Please select target system' }]}
+                >
+                  <Select
+                    placeholder="Select target system"
+                    disabled={!selectedCategory}
+                    onChange={() => {
+                      form.setFieldsValue({ action: undefined });
+                    }}
+                  >
+                    {targetSystems
+                      .filter((sys: any) => !selectedCategory || sys.category === selectedCategory)
+                      .map((sys: any) => (
+                        <Option key={sys.id} value={sys.name}>{sys.name}</Option>
+                      ))}
+                  </Select>
+                </Form.Item>
+              );
+            }}
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.targetSystem !== currentValues.targetSystem}
+          >
+            {({ getFieldValue }) => {
+              const selectedSystemName = getFieldValue('targetSystem');
+              const selectedSystem = targetSystems.find((s: any) => s.name === selectedSystemName);
+              
+              return (
+                <Form.Item
+                  name="action"
+                  label="Action"
+                  rules={[{ required: true, message: 'Please select action' }]}
+                >
+                  <Select
+                    placeholder="Select action"
+                    disabled={!selectedSystemName}
+                    onChange={(value) => {
+                      if (selectedSystemName && value) {
+                        form.setFieldsValue({ 
+                          name: `${selectedSystemName}_${value}`.toUpperCase().replace(/\s+/g, '_') 
+                        });
+                      }
+                    }}
+                  >
+                    {actions
+                      .filter((act: any) => !selectedSystem || act.targetSystemId === selectedSystem.id)
+                      .map((act: any) => (
+                        <Option key={act.id} value={act.name}>{act.name}</Option>
+                      ))}
+                  </Select>
+                </Form.Item>
+              );
+            }}
           </Form.Item>
 
           <Form.Item

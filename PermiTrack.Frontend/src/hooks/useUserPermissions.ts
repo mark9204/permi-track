@@ -41,9 +41,24 @@ export const useUserPermissions = () => {
     return false;
   });
 
+  const isManager = Array.isArray(rawRoles) && rawRoles.some((r: any) => {
+    if (!r) return false;
+    if (typeof r === 'object') {
+      const name = r.name || r.roleName || r.role || '';
+      const lower = String(name).toLowerCase();
+      return lower === 'manager' || lower === 'admin' || lower === 'superadmin';
+    }
+    if (typeof r === 'string') {
+      const lower = r.toLowerCase();
+      return lower === 'manager' || lower === 'admin' || lower === 'superadmin';
+    }
+    return false;
+  });
+
   return {
     isSuperAdmin,
     isAdmin, // This effectively means Level 2 or higher
+    isManager,
     userDepartment: user?.department,
     user
   };

@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import accessRequestService from '../services/accessRequestService';
 import roleService from '../../roles/services/roleService';
 import systemConfigService from '../../admin/services/systemConfigService';
+import { useUserPermissions } from '../../../hooks/useUserPermissions';
 import type { AccessRequest, SubmitRequestPayload } from '../types';
 import type { Role } from '../../roles/services/roleService';
 
@@ -27,8 +28,11 @@ const statusTag = (status: string) => {
 const MyRequestsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const { isAdmin } = useUserPermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const requestType = Form.useWatch('requestType', form);
+  const targetSystemValue = Form.useWatch('targetSystem', form);
 
   useEffect(() => {
     if (location.state?.openCreateModal) {
@@ -51,11 +55,20 @@ const MyRequestsPage: React.FC = () => {
     enabled: isModalOpen
   });
 
+  const filteredTargetSystems = targetSystems.filter((sys: any) => 
+    !requestType || sys.category === requestType
+  );
+
   const { data: actions = [] } = useQuery({
     queryKey: ['actions'],
     queryFn: systemConfigService.getActions,
     enabled: isModalOpen
   });
+
+  const selectedTargetSystem = targetSystems.find((s: any) => s.value === targetSystemValue);
+  const filteredActions = actions.filter((act: any) => 
+    selectedTargetSystem ? act.targetSystemId === selectedTargetSystem.id : false
+  );
 
   const cancelMutation = useMutation({
     mutationFn: (id: number) => accessRequestService.cancelRequest(id),
@@ -177,7 +190,10 @@ const MyRequestsPage: React.FC = () => {
             name="requestType"
             rules={[{ required: true, message: 'Please select a type' }]}
           >
-            <Select placeholder="Select type">
+            <Select 
+              placeholder="Select type"
+              onChange={() => form.setFieldValue('targetSystem', undefined)}
+            >
               <Select.Option value="Systems & Applications">Systems & Applications</Select.Option>
               <Select.Option value="Data & Resources">Data & Resources</Select.Option>
               <Select.Option value="Physical Spaces">Physical Spaces</Select.Option>
@@ -192,7 +208,7 @@ const MyRequestsPage: React.FC = () => {
             rules={[{ required: true, message: 'Please select a target system' }]}
           >
             <Select placeholder="Select target system">
-              {targetSystems.map((sys: any) => (
+              {filteredTargetSystems.map((sys: any) => (
                 <Select.Option key={sys.id} value={sys.value}>{sys.name}</Select.Option>
               ))}
             </Select>
@@ -224,8 +240,8 @@ const MyRequestsPage: React.FC = () => {
             name="action"
             rules={[{ required: true, message: 'Please select an action' }]}
           >
-            <Select placeholder="Select action">
-              {actions.map((act: any) => (
+            <Select placeholder="Select action" disabled={!targetSystemValue}>
+              {filteredActions.map((act: any) => (
                 <Select.Option key={act.id} value={act.value}>{act.name}</Select.Option>
               ))}
             </Select>
@@ -238,17 +254,19 @@ const MyRequestsPage: React.FC = () => {
             <InputNumber min={1} style={{ width: '100%' }} placeholder="e.g. 24" />
           </Form.Item>
 
-          <Form.Item
-            label="Role"
-            name="roleId"
-            rules={[{ required: true, message: 'Please select a role' }]}
-          >
-            <Select
-              placeholder="Select role"
-              options={roles.map((r: any) => ({ label: r.name, value: r.id }))}
-              loading={isRolesLoading}
-            />
-          </Form.Item>
+          {isAdmin && (
+            <Form.Item
+              label="Role"
+              name="roleId"
+              rules={[{ required: true, message: 'Please select a role' }]}
+            >
+              <Select
+                placeholder="Select role"
+                options={roles.map((r: any) => ({ label: r.name, value: r.id }))}
+                loading={isRolesLoading}
+              />
+            </Form.Item>
+          )}
 
           <Form.Item label="Reason" name="reason" rules={[{ required: true, message: 'Please enter a reason' }]}> 
             <TextArea rows={4} />

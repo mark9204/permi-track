@@ -9,7 +9,7 @@ const mockUser: User = {
   firstName: 'Demo',
   lastName: 'User',
   isActive: true,
-  roles: ['Admin'],
+  roles: ['User'],
   department: 'IT',
   createdAt: '2025-01-01T00:00:00Z',
   updatedAt: '2025-01-01T00:00:00Z'
@@ -18,14 +18,21 @@ const mockUser: User = {
 const login = async (data: LoginRequest): Promise<LoginResponse> => {
   await new Promise(resolve => setTimeout(resolve, 800));
   
+  const isAdmin = data.username.toLowerCase().includes('admin');
+  const isManager = data.username.toLowerCase().includes('manager');
+  
+  let roles = ['User'];
+  if (isAdmin) roles = ['SuperAdmin'];
+  else if (isManager) roles = ['Manager'];
+
   // In a real app, this would return a temporary token or a "mfa_required" status
   // For this demo, we'll just return the final response but the UI will intercept it
   const response: LoginResponse = {
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',
     expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
-    user: { ...mockUser, username: data.username },
-    roles: ['Admin'],
+    user: { ...mockUser, username: data.username, roles },
+    roles,
     permissions: []
   };
 
