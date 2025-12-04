@@ -18,6 +18,8 @@ const mockUser: User = {
 const login = async (data: LoginRequest): Promise<LoginResponse> => {
   await new Promise(resolve => setTimeout(resolve, 800));
   
+  // In a real app, this would return a temporary token or a "mfa_required" status
+  // For this demo, we'll just return the final response but the UI will intercept it
   const response: LoginResponse = {
     accessToken: 'mock-access-token',
     refreshToken: 'mock-refresh-token',
@@ -27,10 +29,14 @@ const login = async (data: LoginRequest): Promise<LoginResponse> => {
     permissions: []
   };
 
-  localStorage.setItem('accessToken', response.accessToken);
-  localStorage.setItem('refreshToken', response.refreshToken);
+  // We don't set localStorage here anymore, the UI will do it after MFA
   
   return response;
+};
+
+const verify2FA = async (code: string): Promise<boolean> => {
+  await new Promise(resolve => setTimeout(resolve, 600));
+  return code === '123456'; // Mock validation
 };
 
 const refreshToken = async (): Promise<{ accessToken: string }> => {
@@ -62,6 +68,7 @@ const logout = () => {
 
 export const authService = {
   login,
+  verify2FA,
   logout,
   refreshToken,
   getCurrentUser,

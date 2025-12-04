@@ -33,7 +33,10 @@ const RegisterPage: React.FC = () => {
         password: values.password,
       });
 
-      // Store user data and update state
+      // Store tokens and user data
+      localStorage.setItem('accessToken', loginResponse.accessToken);
+      localStorage.setItem('refreshToken', loginResponse.refreshToken);
+
       const userToStore = { 
         ...loginResponse.user, 
         roles: loginResponse.roles ?? loginResponse.user.roles 
